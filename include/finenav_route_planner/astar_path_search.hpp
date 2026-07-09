@@ -7,14 +7,21 @@
 #include <optional>
 #include <cmath>
 
-#include "finenav_core/concepts.hpp"
-#include "finenav_util/algo_configurator.hpp"
+#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/algo_configurator.hpp"
 #include "finenav_route_planner/astar_params.hpp"
 
-#include "astar_algorithm.hpp"
-#include "imap_view.hpp"
+#include "finenav_route_planner/astar_algorithm.hpp"
+#include "finenav_route_planner/imap_view.hpp"
 
 namespace finenav {
+using finenav::core::Position3D;
+using finenav::core::Region3D;
+using finenav::core::IOProfile;
+using finenav::core::PlanningContext;
+using finenav::core::InputTrajectoryT;
+using finenav::core::OutputTrajectoryT;
+using finenav::core::Trajectory;
 
 // =============================================================
 // AstarPathSearch
@@ -46,7 +53,7 @@ public:
     using IMapView = astar::IMapView;
 
     using Context = PlanningContext<AstarPathSearch>;
-    using Result  = std::optional<OutputDataT<AstarPathSearch>>;
+    using Result  = std::optional<OutputTrajectoryT<AstarPathSearch>>;
 
     void configure(const ConfigType& params);
     void reset() {}

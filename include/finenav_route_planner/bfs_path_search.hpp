@@ -6,14 +6,21 @@
 
 #include <optional>
 
-#include "finenav_core/concepts.hpp"
-#include "finenav_util/algo_configurator.hpp"
+#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/algo_configurator.hpp"
 #include "finenav_route_planner/bfs_params.hpp"
 
-#include "astar_algorithm.hpp"   // BFS is A* with Heuristic::Zero
-#include "imap_view.hpp"
+#include "finenav_route_planner/astar_algorithm.hpp"   // BFS is A* with Heuristic::Zero
+#include "finenav_route_planner/imap_view.hpp"
 
 namespace finenav {
+using finenav::core::Position3D;
+using finenav::core::Region3D;
+using finenav::core::IOProfile;
+using finenav::core::PlanningContext;
+using finenav::core::InputTrajectoryT;
+using finenav::core::OutputTrajectoryT;
+using finenav::core::Trajectory;
 
 // =============================================================
 // BfsPathSearch
@@ -53,7 +60,7 @@ public:
     using IMapView = astar::IMapView;
 
     using Context = PlanningContext<BfsPathSearch>;
-    using Result  = std::optional<OutputDataT<BfsPathSearch>>;
+    using Result  = std::optional<OutputTrajectoryT<BfsPathSearch>>;
 
     void configure(const ConfigType& params);
     void reset() {}

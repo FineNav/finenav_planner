@@ -9,16 +9,23 @@
 #include <mutex>
 #include <std_msgs/msg/string.hpp>
 
-#include "finenav_core/concepts.hpp"
-#include "finenav_util/algo_configurator.hpp"
+#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/algo_configurator.hpp"
 #include "finenav_route_planner/route_params.hpp"
 
-#include "astar_algorithm.hpp"
-#include "imap_view.hpp"
-#include "route/route_graph.hpp"
-#include "route/route_search.hpp"
+#include "finenav_route_planner/astar_algorithm.hpp"
+#include "finenav_route_planner/imap_view.hpp"
+#include "finenav_route_planner/route/route_graph.hpp"
+#include "finenav_route_planner/route/route_search.hpp"
 
 namespace finenav {
+using finenav::core::Position3D;
+using finenav::core::Region3D;
+using finenav::core::IOProfile;
+using finenav::core::PlanningContext;
+using finenav::core::InputTrajectoryT;
+using finenav::core::OutputTrajectoryT;
+using finenav::core::Trajectory;
 
 // =============================================================
 // RoutePathSearch
@@ -72,7 +79,7 @@ public:
     using IMapView = astar::IMapView;
 
     using Context = PlanningContext<RoutePathSearch>;
-    using Result  = std::optional<OutputDataT<RoutePathSearch>>;
+    using Result  = std::optional<OutputTrajectoryT<RoutePathSearch>>;
 
     // Loads (or reloads) the graph when graph_file param changes.
     void configure(const ConfigType& params);
@@ -147,7 +154,7 @@ private:
 } // namespace finenav
 
 //TODO: 不用 FINENAV_REGISTER_ALGO_CONFIG(finenav::RoutePathSearch, route_planner) 的做法有待商榷
-namespace finenav {
+namespace finenav::core {
 
 template <>
 struct AlgoConfigurator<finenav::RoutePathSearch> {
@@ -178,4 +185,4 @@ struct AlgoConfigurator<finenav::RoutePathSearch> {
     }
 };
 
-} // namespace finenav
+} // namespace finenav::core
