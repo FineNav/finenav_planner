@@ -193,13 +193,13 @@ public:
 
     bool isWalkable(const finenav::Position3D& p) const override {
         return grid_.isWalkableCell(
-            static_cast<int>(std::floor(p.x() / step_)),
-            static_cast<int>(std::floor(p.y() / step_)));
+            static_cast<int>(std::floor(p.x / step_)),
+            static_cast<int>(std::floor(p.y / step_)));
     }
     double getCost(const finenav::Position3D& p) const override {
         return grid_.getCostCell(
-            static_cast<int>(std::floor(p.x() / step_)),
-            static_cast<int>(std::floor(p.y() / step_)));
+            static_cast<int>(std::floor(p.x / step_)),
+            static_cast<int>(std::floor(p.y / step_)));
     }
     double getStepSize() const override { return step_; }
 
@@ -221,15 +221,35 @@ inline finenav::BfsPathSearch makePlanner()
     return planner;
 }
 
-inline finenav::PlanningContext<finenav::BfsPathSearch>
-makeCtx(double sx, double sy, double gx, double gy)
+// PlanningContext stores const references into owned storage, so the owned
+// RobotState / ref_traj must outlive every plan() call.  Keep them in a bundle
+// that converts to `const PlanningContext&`; the bundle is a temporary living
+// for the whole plan() call, so call sites (`planner.plan(makeCtx(...), view)`)
+// stay unchanged.
+struct BfsTestCtx {
+    finenav::core::RobotState robot_state;
+    finenav::core::InputTrajectoryT<finenav::BfsPathSearch> ref_traj;
+    finenav::PlanningContext<finenav::BfsPathSearch> ctx{robot_state, ref_traj};
+
+    BfsTestCtx(double sx, double sy, double gx, double gy)
+    {
+        robot_state.pose.position.x = sx;
+        robot_state.pose.position.y = sy;
+        ref_traj.poses.resize(1);
+        ref_traj.poses[0].position.x    = gx;
+        ref_traj.poses[0].position.y    = gy;
+        ref_traj.poses[0].orientation.w = 1.0;
+    }
+
+    operator const finenav::PlanningContext<finenav::BfsPathSearch>&() const
+    {
+        return ctx;
+    }
+};
+
+inline BfsTestCtx makeCtx(double sx, double sy, double gx, double gy)
 {
-    finenav::PlanningContext<finenav::BfsPathSearch> ctx;
-    ctx.robot_state.position.x() = sx;
-    ctx.robot_state.position.y() = sy;
-    ctx.goal_pose.position.x = gx;
-    ctx.goal_pose.position.y = gy;
-    return ctx;
+    return BfsTestCtx{sx, sy, gx, gy};
 }
 
 TEST(BfsPathSearch, PlanSucceeds_OpenGrid)

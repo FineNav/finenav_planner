@@ -7,9 +7,10 @@
 #include <cmath>
 #include <limits>
 #include <unordered_map>
-#include <mutex>
 
 #include <geometry_msgs/msg/pose.hpp>
+
+#include "finenav_core/common/algo_register_macros.hpp"
 
 namespace finenav {
 
@@ -24,50 +25,32 @@ void RoutePathSearch::configure(const ConfigType& params)
     min_approach_angle_deg_   = params.min_approach_angle_deg;
 }
 
-// ── updateGraph ────────────────────────────────────────────────────────────
-
-void RoutePathSearch::updateGraph(const std::string& geojson_str)
-{
-    std::lock_guard<std::mutex> lock(*graph_mutex_);
-    cached_graph_ = route::loadFromJson(geojson_str);
-
-    if (!cached_graph_) {
-        RCLCPP_ERROR(
-            rclcpp::get_logger("RoutePathSearch"),
-            "Failed to parse route graph from /geojson topic.");
-    } else {
-        RCLCPP_INFO(
-            rclcpp::get_logger("RoutePathSearch"),
-            "Successfully loaded route graph from /geojson topic with %zu nodes.",
-            cached_graph_->nodes.size());
-    }
-}
-
 // ── plan ───────────────────────────────────────────────────────────────────
 
 RoutePathSearch::Result RoutePathSearch::plan(
     const Context&  ctx,
     const IMapView& map_view)
 {
-    std::lock_guard<std::mutex> lock(*graph_mutex_);
-
-    if (!cached_graph_ || cached_graph_->nodes.empty()) return std::nullopt;
-    const auto& orig_graph = *cached_graph_;
+    const auto* graph_ptr = map_view.getGraph();
+    if (!graph_ptr || graph_ptr->nodes.empty()) return std::nullopt;
+    if (ctx.ref_traj.poses.empty()) return std::nullopt;
+    const auto& orig_graph = *graph_ptr;
 
     // Obstacle-aware BFS to snap start and goal to nearest reachable
     // graph points (nodes or intermediate path points).
     geometry_msgs::msg::Pose start_pose;
-    start_pose.position.x = ctx.robot_state.position.x();
-    start_pose.position.y = ctx.robot_state.position.y();
-    start_pose.position.z = ctx.robot_state.position.z();
-    start_pose.orientation.w = ctx.robot_state.orientation.w();
-    start_pose.orientation.x = ctx.robot_state.orientation.x();
-    start_pose.orientation.y = ctx.robot_state.orientation.y();
-    start_pose.orientation.z = ctx.robot_state.orientation.z();
+    start_pose.position.x = ctx.robot_state.pose.position.x;
+    start_pose.position.y = ctx.robot_state.pose.position.y;
+    start_pose.position.z = ctx.robot_state.pose.position.z;
+    start_pose.orientation.w = ctx.robot_state.pose.orientation.w;
+    start_pose.orientation.x = ctx.robot_state.pose.orientation.x;
+    start_pose.orientation.y = ctx.robot_state.pose.orientation.y;
+    start_pose.orientation.z = ctx.robot_state.pose.orientation.z;
     const auto start_snap = findNearestGraphPoint(orig_graph, start_pose, map_view);
     if (!start_snap.isNode() && !start_snap.isPath()) return std::nullopt;
 
-    const auto goal_snap = findNearestGraphPoint(orig_graph, ctx.goal_pose, map_view);
+    const auto goal_snap =
+        findNearestGraphPoint(orig_graph, ctx.ref_traj.poses.back(), map_view);
     if (!goal_snap.isNode() && !goal_snap.isPath()) return std::nullopt;
 
     // ── Build mutable working graph ──────────────────────────────────────
@@ -117,14 +100,14 @@ RoutePathSearch::Result RoutePathSearch::plan(
 
     auto isDegenerate = [](const std::vector<Position3D>& conn) -> bool {
         if (conn.size() < 2) return true;
-        const double d = (conn.front() - conn.back()).norm();
+        const double d = norm(conn.front() - conn.back());
         return d < 1e-6;
     };
 
     // ── Start connector (robot_pose → snap_point) ──
     if (!isDegenerate(start_snap.connector_path)) {
         for (const auto& pt : start_snap.connector_path)
-            appendPose(pt.x(), pt.y());
+            appendPose(pt.x, pt.y);
     }
 
     // ── Topological route ──
@@ -141,21 +124,21 @@ RoutePathSearch::Result RoutePathSearch::plan(
     for (size_t i = (skip_first_route ? 1 : 0); i < route_opt->size(); ++i)
         appendPose((*route_opt)[i].first, (*route_opt)[i].second);
 
-    // ── Goal connector (snap_point → goal_pose), reversed ──
+    // ── Goal connector (snap_point → final ref pose), reversed ──
     if (!isDegenerate(goal_snap.connector_path)) {
         const auto& route_end = output.poses.back().position;
         const auto& goal_last = goal_snap.connector_path.back();  // snap point
         const bool route_ends_at_snap =
-            std::hypot(route_end.x - goal_last.x(),
-                       route_end.y - goal_last.y()) < 1e-6;
+            std::hypot(route_end.x - goal_last.x,
+                       route_end.y - goal_last.y) < 1e-6;
 
         const size_t start_i = route_ends_at_snap
             ? goal_snap.connector_path.size() - 2
             : goal_snap.connector_path.size() - 1;
 
         for (size_t i = start_i; i != SIZE_MAX; --i)
-            appendPose(goal_snap.connector_path[i].x(),
-                       goal_snap.connector_path[i].y());
+            appendPose(goal_snap.connector_path[i].x,
+                       goal_snap.connector_path[i].y);
     }
 
     return output;
@@ -264,8 +247,8 @@ RoutePathSearch::SnapResult RoutePathSearch::findNearestGraphPoint(
             if (cell_path_pts.contains(c)) {
                 for (const auto& ppi : cell_path_pts.at(c)) {
                     // approach direction: robot pose → candidate point
-                    const double adx = ppi.world_pos.x() - pose.position.x;
-                    const double ady = ppi.world_pos.y() - pose.position.y;
+                    const double adx = ppi.world_pos.x - pose.position.x;
+                    const double ady = ppi.world_pos.y - pose.position.y;
                     const double ad_norm = std::hypot(adx, ady);
                     if (ad_norm < 1e-9) continue;
                     // path tangent: polyline[pt+1] − polyline[pt−1]
@@ -323,8 +306,8 @@ RoutePathSearch::SnapResult RoutePathSearch::findNearestGraphPoint(
         for (const auto& ppi : cell_path_pts.at(goal_cell)) {
             // ── Angle filter: skip path points whose approach angle is too small ──
             if (min_approach_angle_deg_ > 0.0) {
-                const double adx = ppi.world_pos.x() - pose.position.x;
-                const double ady = ppi.world_pos.y() - pose.position.y;
+                const double adx = ppi.world_pos.x - pose.position.x;
+                const double ady = ppi.world_pos.y - pose.position.y;
                 const double ad_norm = std::hypot(adx, ady);
                 if (ad_norm > 1e-9) {
                     const auto& pl = graph.adj[ppi.from_node][ppi.edge_idx].polyline;
@@ -340,8 +323,8 @@ RoutePathSearch::SnapResult RoutePathSearch::findNearestGraphPoint(
                 }
             }
 
-            const double d = std::hypot(ppi.world_pos.x() - pose.position.x,
-                                        ppi.world_pos.y() - pose.position.y);
+            const double d = std::hypot(ppi.world_pos.x - pose.position.x,
+                                        ppi.world_pos.y - pose.position.y);
             if (d < best_dist) {
                 // If switching from node to path point, reset node_index
                 if (found_node) {
@@ -393,7 +376,7 @@ size_t RoutePathSearch::insertVirtualNode(
     const Position3D& pos) const
 {
     const size_t idx = graph.nodes.size();
-    graph.nodes.push_back({/*id=*/0, pos.x(), pos.y(), /*frame=*/""});
+    graph.nodes.push_back({/*id=*/0, pos.x, pos.y, /*frame=*/""});
     graph.adj.resize(graph.nodes.size());
     return idx;
 }
@@ -426,8 +409,8 @@ void RoutePathSearch::splitEdgeForSnap(
 
             // Search for the snap point in this polyline
             for (size_t pi = 0; pi < nb.polyline.size(); ++pi) {
-                const double dx = nb.polyline[pi].first  - snap.snap_point.x();
-                const double dy = nb.polyline[pi].second - snap.snap_point.y();
+                const double dx = nb.polyline[pi].first  - snap.snap_point.x;
+                const double dy = nb.polyline[pi].second - snap.snap_point.y;
                 if (std::hypot(dx, dy) > kTol) continue;
 
                 // Found it — split at index pi
@@ -472,8 +455,8 @@ void RoutePathSearch::splitEdgeForSnap(
 
                     // Find the snap point in the reverse polyline
                     for (size_t rpi = 0; rpi < rev_nb.polyline.size(); ++rpi) {
-                        const double rdx = rev_nb.polyline[rpi].first  - snap.snap_point.x();
-                        const double rdy = rev_nb.polyline[rpi].second - snap.snap_point.y();
+                        const double rdx = rev_nb.polyline[rpi].first  - snap.snap_point.x;
+                        const double rdy = rev_nb.polyline[rpi].second - snap.snap_point.y;
                         if (std::hypot(rdx, rdy) > kTol) continue;
 
                         std::vector<std::pair<double, double>> rpl_first(
@@ -511,4 +494,6 @@ void RoutePathSearch::splitEdgeForSnap(
 }
 
 } // namespace finenav
+
+FINENAV_REGISTER_PLANNER(finenav::RoutePathSearch, route_planner)
 
