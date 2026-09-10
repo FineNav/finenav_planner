@@ -12,8 +12,8 @@
 #include <string>
 #include <thread>
 
-#include "finenav_visualizer/finenav_visualizer.hpp"
 #include "finenav_mppi_controller/controller.hpp"
+#include "finenav_visualizer/finenav_visualizer.hpp"
 
 namespace nav2_mppi_controller {
 namespace {
@@ -56,9 +56,7 @@ class ConcurrentMapView final : public IMapView {
     int getCost(const Position3D&) const override {
         const int active = active_cost_queries_.fetch_add(1) + 1;
         int observed = max_concurrent_cost_queries_.load();
-        while (active > observed &&
-               !max_concurrent_cost_queries_.compare_exchange_weak(observed, active)) {
-        }
+        while (active > observed && !max_concurrent_cost_queries_.compare_exchange_weak(observed, active)) {}
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         active_cost_queries_.fetch_sub(1);
         return 0;
@@ -70,9 +68,7 @@ class ConcurrentMapView final : public IMapView {
 
     std::string getBaseFrameID() const override { return "base_link"; }
 
-    int maxConcurrentCostQueries() const {
-        return max_concurrent_cost_queries_.load();
-    }
+    int maxConcurrentCostQueries() const { return max_concurrent_cost_queries_.load(); }
 
   private:
     mutable std::atomic<int> active_cost_queries_{0};
@@ -123,9 +119,8 @@ MPPIController::Context makeContext(std::size_t path_size = 24) {
     return context;
 }
 
-void expectFiniteBoundedOutput(
-    const finenav::core::OutputTrajectoryT<MPPIController>& output,
-    const finenav_mppi_controller::Params& params) {
+void expectFiniteBoundedOutput(const finenav::core::OutputTrajectoryT<MPPIController>& output,
+                               const finenav_mppi_controller::Params& params) {
     ASSERT_EQ(output.poses.size(), static_cast<std::size_t>(params.time_steps));
     ASSERT_EQ(output.twists.size(), static_cast<std::size_t>(params.time_steps));
 
@@ -134,9 +129,7 @@ void expectFiniteBoundedOutput(
         const auto& twist = output.twists[i];
         EXPECT_TRUE(std::isfinite(pose.position.x));
         EXPECT_TRUE(std::isfinite(pose.position.y));
-        EXPECT_NEAR(
-            pose.orientation.z * pose.orientation.z + pose.orientation.w * pose.orientation.w,
-            1.0, 1e-5);
+        EXPECT_NEAR(pose.orientation.z * pose.orientation.z + pose.orientation.w * pose.orientation.w, 1.0, 1e-5);
         EXPECT_TRUE(std::isfinite(twist.linear.x));
         EXPECT_GE(twist.linear.x, params.vx_min - 1e-5);
         EXPECT_LE(twist.linear.x, params.vx_max + 1e-5);
@@ -193,8 +186,7 @@ TEST(ControllerPlanTest, VisualizedPlanResetStressWithPracticalDimensions) {
     params.CostCritic.chunk_size = 1;
 
     {
-        auto visualizer_node = std::make_shared<rclcpp::Node>(
-            "controller_plan_visualizer_test_node");
+        auto visualizer_node = std::make_shared<rclcpp::Node>("controller_plan_visualizer_test_node");
         finenav::viz::FineNavVisualizer framework_visualizer(visualizer_node);
         MPPIController controller;
         controller.configure(params);

@@ -14,39 +14,34 @@
 
 #include "finenav_mppi_controller/critics/goal_angle_critic.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void GoalAngleCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("GoalAngleCritic");
-  const auto & c = p.GoalAngleCritic;
-  enabled_               = c.enabled;
-  power_                 = static_cast<unsigned int>(c.cost_power);
-  weight_                = static_cast<float>(c.cost_weight);
-  threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+void GoalAngleCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("GoalAngleCritic");
+    const auto& c = p.GoalAngleCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
+    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
 }
 
-void GoalAngleCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_ )
-  {
-    return;
-  }
+void GoalAngleCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_) {
+        return;
+    }
 
-  // Only activate when robot is near the goal
-  if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path))
-  {
-    return;
-  }
+    // Only activate when robot is near the goal
+    if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+        return;
+    }
 
-  const auto goal_idx = data.path.x.size() - 1;
-  const float goal_yaw = data.path.yaws(goal_idx);
+    const auto goal_idx = data.path.x.size() - 1;
+    const float goal_yaw = data.path.yaws(goal_idx);
 
-  data.costs += (utils::shortest_angular_distance(data.trajectories.yaws, goal_yaw).abs().rowwise().mean() *
-    weight_).pow(power_);
-  RCLCPP_DEBUG(logger_, "Scored");
+    data.costs += (utils::shortest_angular_distance(data.trajectories.yaws, goal_yaw).abs().rowwise().mean() * weight_)
+                      .pow(power_);
+    RCLCPP_DEBUG(logger_, "Scored");
 }
 
 }  // namespace mppi::critics

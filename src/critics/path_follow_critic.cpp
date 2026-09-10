@@ -14,54 +14,48 @@
 
 #include "finenav_mppi_controller/critics/path_follow_critic.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void PathFollowCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("PathFollowCritic");
-  const auto & c = p.PathFollowCritic;
-  enabled_               = c.enabled;
-  power_                 = static_cast<unsigned int>(c.cost_power);
-  weight_                = static_cast<float>(c.cost_weight);
-  offset_from_furthest_  = static_cast<size_t>(c.offset_from_furthest);
-  threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+void PathFollowCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("PathFollowCritic");
+    const auto& c = p.PathFollowCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
+    offset_from_furthest_ = static_cast<size_t>(c.offset_from_furthest);
+    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
 }
 
-void PathFollowCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_ || data.path.x.size() < 2 ||
-    utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path))
-  {
-    return;
-  }
-  utils::setPathFurthestPointIfNotSet(data);
-  utils::setPathCostsIfNotSet(data, map_view);
-  const size_t path_size = data.path.x.size() - 1;
-
-  auto offseted_idx = std::min(
-    *data.furthest_reached_path_point + offset_from_furthest_, path_size-1);
-  // Drive to the first valid path point, in case of dynamic obstacles on path
-  // we want to drive past it, not through it
-  bool valid = false;
-  while (!valid && offseted_idx < path_size - 1) {
-    valid = (*data.path_pts_valid)[offseted_idx];
-    if (!valid) {
-      offseted_idx++;
+void PathFollowCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_ || data.path.x.size() < 2 ||
+        utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+        return;
     }
-  }
+    utils::setPathFurthestPointIfNotSet(data);
+    utils::setPathCostsIfNotSet(data, map_view);
+    const size_t path_size = data.path.x.size() - 1;
 
-  const auto path_x = data.path.x(offseted_idx);
-  const auto path_y = data.path.y(offseted_idx);
+    auto offseted_idx = std::min(*data.furthest_reached_path_point + offset_from_furthest_, path_size - 1);
+    // Drive to the first valid path point, in case of dynamic obstacles on path
+    // we want to drive past it, not through it
+    bool valid = false;
+    while (!valid && offseted_idx < path_size - 1) {
+        valid = (*data.path_pts_valid)[offseted_idx];
+        if (!valid) {
+            offseted_idx++;
+        }
+    }
 
-  const auto last_x = data.trajectories.x.col(data.trajectories.x.cols() - 1);
-  const auto last_y = data.trajectories.y.col(data.trajectories.y.cols() - 1);
+    const auto path_x = data.path.x(offseted_idx);
+    const auto path_y = data.path.y(offseted_idx);
 
-  const models::Vector dists = ((last_x.array() - path_x).square() +
-    (last_y.array() - path_y).square()).sqrt();
+    const auto last_x = data.trajectories.x.col(data.trajectories.x.cols() - 1);
+    const auto last_y = data.trajectories.y.col(data.trajectories.y.cols() - 1);
 
-  data.costs += (weight_ * dists).pow(power_);
+    const models::Vector dists = ((last_x.array() - path_x).square() + (last_y.array() - path_y).square()).sqrt();
+
+    data.costs += (weight_ * dists).pow(power_);
     RCLCPP_DEBUG(logger_, "Scored");
 }
 

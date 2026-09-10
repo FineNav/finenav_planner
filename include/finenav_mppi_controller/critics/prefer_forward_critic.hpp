@@ -18,34 +18,32 @@
 #include "finenav_mppi_controller/critic_function.hpp"
 #include "finenav_mppi_controller/tools/utils.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 
 /**
  * @class mppi::critics::PreferForwardCritic
  * @brief Critic objective function for preferring forward motion
  */
 
-class PreferForwardCritic : public CriticFunction
-{
-public:
-  /**
+class PreferForwardCritic : public CriticFunction {
+  public:
+    /**
     * @brief Initialize critic
     */
-  void initialize(const finenav_mppi_controller::Params & params) override;
+    void initialize(const finenav_mppi_controller::Params& params) override;
 
-  /**
+    /**
    * @brief Evaluate cost related to robot orientation at goal pose
    * (considered only if robot near last goal in current plan)
    *
    * @param costs [out] add goal angle cost values to this tensor
    */
-  void score(CriticData & data, const nav2_mppi_controller::IMapView& map_view) override;
+    void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) override;
 
-protected:
-  unsigned int power_{0};
-  float weight_{0};
-  float threshold_to_consider_{0};
+  protected:
+    unsigned int power_{0};
+    float weight_{0};
+    float threshold_to_consider_{0};
 };
 
 }  // namespace mppi::critics

@@ -22,9 +22,9 @@
 #include "geometry_msgs/msg/twist_stamped.hpp"
 
 //#include "finenav_mppi_controller/tools/parameters_handler.hpp"
-#include "finenav_mppi_controller/tools/utils.hpp"
 #include "finenav_mppi_controller/critic_data.hpp"
 #include "finenav_mppi_controller/critic_function.hpp"
+#include "finenav_mppi_controller/tools/utils.hpp"
 
 #include "finenav_mppi_controller/critics/constraint_critic.hpp"
 #include "finenav_mppi_controller/critics/cost_critic.hpp"
@@ -37,47 +37,44 @@
 #include "finenav_mppi_controller/critics/twirling_critic.hpp"
 #include "finenav_mppi_controller/critics/velocity_deadband_critic.hpp"
 
-namespace mppi
-{
+namespace mppi {
 
 /**
  * @class mppi::CriticManager
  * @brief Manager of objective function plugins for scoring trajectories
  */
 
-class CriticManager
-{
-public:
-  /**
+class CriticManager {
+  public:
+    /**
     * @brief Constructor for mppi::CriticManager
     */
-  CriticManager() = default;
+    CriticManager() = default;
 
-  /**
+    /**
     * @brief Virtual Destructor for mppi::CriticManager
     */
-  virtual ~CriticManager() = default;
+    virtual ~CriticManager() = default;
 
-  /**
+    /**
     * @brief Configure critic manager on bringup and load plugins
     * @param parent WeakPtr to node
     * @param name Name of plugin
     * @param costmap_ros Costmap2DROS object of environment
     * @param dynamic_parameter_handler Parameter handler object
     */
-  void on_configure(
-     std::vector<std::unique_ptr<critics::CriticFunction>> & critics,
-     const finenav_mppi_controller::Params & params);
+    void on_configure(std::vector<std::unique_ptr<critics::CriticFunction>>& critics,
+                      const finenav_mppi_controller::Params& params);
 
-  /**
+    /**
     * @brief Score trajectories by the set of loaded critic functions
     * @param CriticData Struct of necessary information to pass to the critic functions
     */
 
-  void evalTrajectoriesScores(CriticData & data ,const nav2_mppi_controller::IMapView& map_view) const;
+    void evalTrajectoriesScores(CriticData& data, const nav2_mppi_controller::IMapView& map_view) const;
 
-protected:
-  std::vector<std::unique_ptr<critics::CriticFunction>> critics_;
+  protected:
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics_;
 };
 
 }  // namespace mppi

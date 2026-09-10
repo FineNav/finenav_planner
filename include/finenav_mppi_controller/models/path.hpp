@@ -17,31 +17,28 @@
 
 #include "finenav_mppi_controller/models/eigen_types.hpp"
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @struct mppi::models::Path
  * @brief Path represented as a tensor
  */
-struct Path
-{
-  Vector x;
-  Vector y;
-  Vector yaws;
+struct Path {
+    Vector x;
+    Vector y;
+    Vector yaws;
 
-  /**
+    /**
     * @brief Reset path data
     */
-  void reset(unsigned int size)
-  {
-    x.resize(size);
-    y.resize(size);
-    yaws.resize(size);
-    x.setZero();
-    y.setZero();
-    yaws.setZero();
-  }
+    void reset(unsigned int size) {
+        x.resize(size);
+        y.resize(size);
+        yaws.resize(size);
+        x.setZero();
+        y.setZero();
+        yaws.setZero();
+    }
 };
 
 }  // namespace mppi::models

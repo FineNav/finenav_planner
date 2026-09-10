@@ -14,11 +14,9 @@
 
 #include "finenav_mppi_controller/controller.hpp"
 
-namespace nav2_mppi_controller
-{
+namespace nav2_mppi_controller {
 
-void MPPIController::setPlan(const nav_msgs::msg::Path & path)
-{
+void MPPIController::setPlan(const nav_msgs::msg::Path& path) {
     path_ = path;
 }
 

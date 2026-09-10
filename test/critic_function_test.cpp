@@ -17,45 +17,35 @@
 #include "finenav_mppi_controller/critics/twirling_critic.hpp"
 #include "finenav_mppi_controller/critics/velocity_deadband_critic.hpp"
 
-namespace mppi::critics
-{
-namespace
-{
+namespace mppi::critics {
+namespace {
 
-template<typename CriticT>
-class TestCritic : public CriticT
-{
-public:
-  std::string loggerName() const
-  {
-    return this->logger_.get_name();
-  }
+template <typename CriticT>
+class TestCritic : public CriticT {
+  public:
+    std::string loggerName() const { return this->logger_.get_name(); }
 };
 
-template<typename CriticT>
-void expectLoggerName(
-  const finenav_mppi_controller::Params & params,
-  const std::string & expected_name)
-{
-  TestCritic<CriticT> critic;
-  critic.initialize(params);
-  EXPECT_EQ(critic.loggerName(), expected_name);
+template <typename CriticT>
+void expectLoggerName(const finenav_mppi_controller::Params& params, const std::string& expected_name) {
+    TestCritic<CriticT> critic;
+    critic.initialize(params);
+    EXPECT_EQ(critic.loggerName(), expected_name);
 }
 
-TEST(CriticFunctionTest, InitializeAssignsClassSpecificLogger)
-{
-  finenav_mppi_controller::Params params;
+TEST(CriticFunctionTest, InitializeAssignsClassSpecificLogger) {
+    finenav_mppi_controller::Params params;
 
-  expectLoggerName<ConstraintCritic>(params, "ConstraintCritic");
-  expectLoggerName<CostCritic>(params, "CostCritic");
-  expectLoggerName<GoalAngleCritic>(params, "GoalAngleCritic");
-  expectLoggerName<GoalCritic>(params, "GoalCritic");
-  expectLoggerName<PathAlignCritic>(params, "PathAlignCritic");
-  expectLoggerName<PathAngleCritic>(params, "PathAngleCritic");
-  expectLoggerName<PathFollowCritic>(params, "PathFollowCritic");
-  expectLoggerName<PreferForwardCritic>(params, "PreferForwardCritic");
-  expectLoggerName<TwirlingCritic>(params, "TwirlingCritic");
-  expectLoggerName<VelocityDeadbandCritic>(params, "VelocityDeadbandCritic");
+    expectLoggerName<ConstraintCritic>(params, "ConstraintCritic");
+    expectLoggerName<CostCritic>(params, "CostCritic");
+    expectLoggerName<GoalAngleCritic>(params, "GoalAngleCritic");
+    expectLoggerName<GoalCritic>(params, "GoalCritic");
+    expectLoggerName<PathAlignCritic>(params, "PathAlignCritic");
+    expectLoggerName<PathAngleCritic>(params, "PathAngleCritic");
+    expectLoggerName<PathFollowCritic>(params, "PathFollowCritic");
+    expectLoggerName<PreferForwardCritic>(params, "PreferForwardCritic");
+    expectLoggerName<TwirlingCritic>(params, "TwirlingCritic");
+    expectLoggerName<VelocityDeadbandCritic>(params, "VelocityDeadbandCritic");
 }
 
 }  // namespace

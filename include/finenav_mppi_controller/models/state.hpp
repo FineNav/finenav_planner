@@ -20,46 +20,43 @@
 
 #include "finenav_mppi_controller/models/eigen_types.hpp"
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @struct mppi::models::State
  * @brief State information: velocities, controls, poses, speed
  */
-struct State
-{
-  BatchArray vx;
-  BatchArray vy;
-  BatchArray wz;
+struct State {
+    BatchArray vx;
+    BatchArray vy;
+    BatchArray wz;
 
-  BatchArray cvx;
-  BatchArray cvy;
-  BatchArray cwz;
+    BatchArray cvx;
+    BatchArray cvy;
+    BatchArray cwz;
 
-  geometry_msgs::msg::PoseStamped pose;
-  geometry_msgs::msg::Twist speed;
+    geometry_msgs::msg::PoseStamped pose;
+    geometry_msgs::msg::Twist speed;
 
-  /**
+    /**
     * @brief Reset state data
     */
-  void reset(unsigned int batch_size, unsigned int time_steps)
-  {
-    vx.resize(batch_size, time_steps);
-    vy.resize(batch_size, time_steps);
-    wz.resize(batch_size, time_steps);
+    void reset(unsigned int batch_size, unsigned int time_steps) {
+        vx.resize(batch_size, time_steps);
+        vy.resize(batch_size, time_steps);
+        wz.resize(batch_size, time_steps);
 
-    cvx.resize(batch_size, time_steps);
-    cvy.resize(batch_size, time_steps);
-    cwz.resize(batch_size, time_steps);
+        cvx.resize(batch_size, time_steps);
+        cvy.resize(batch_size, time_steps);
+        cwz.resize(batch_size, time_steps);
 
-    vx.setZero();
-    vy.setZero();
-    wz.setZero();
-    cvx.setZero();
-    cvy.setZero();
-    cwz.setZero();
-  }
+        vx.setZero();
+        vy.setZero();
+        wz.setZero();
+        cvx.setZero();
+        cvy.setZero();
+        cwz.setZero();
+    }
 };
 }  // namespace mppi::models
 

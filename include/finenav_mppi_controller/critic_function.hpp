@@ -19,45 +19,42 @@
 
 //#include "finenav_mppi_controller/tools/parameters_handler.hpp"
 #include "finenav_mppi_controller/critic_data.hpp"
-#include "finenav_mppi_controller/map_view_def.hpp"
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
+#include "finenav_mppi_controller/map_view_def.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 
 /**
  * @class mppi::critics::CriticFunction
  * @brief Abstract critic objective function to score trajectories
  */
 
-class CriticFunction
-{
-public:
-  /**
+class CriticFunction {
+  public:
+    /**
     * @brief Constructor for mppi::critics::CriticFunction
     */
-  CriticFunction() = default;
+    CriticFunction() = default;
 
-  /**
+    /**
     * @brief Destructor for mppi::critics::CriticFunction
     */
-  virtual ~CriticFunction() = default;
+    virtual ~CriticFunction() = default;
 
-  /**
+    /**
     * @brief Main function to score trajectory
     * @param data Critic data to use in scoring
     */
-  virtual void score(CriticData & data, const nav2_mppi_controller::IMapView & map_view) = 0;
+    virtual void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) = 0;
 
-  /**
+    /**
     * @brief Initialize critic
     */
-  virtual void initialize(const finenav_mppi_controller::Params & params) = 0;
+    virtual void initialize(const finenav_mppi_controller::Params& params) = 0;
 
-protected:
-  bool enabled_{false};
-  rclcpp::Logger logger_{rclcpp::get_logger("CriticFunction")};
-
+  protected:
+    bool enabled_{false};
+    rclcpp::Logger logger_{rclcpp::get_logger("CriticFunction")};
 };
 
 }  // namespace mppi::critics

@@ -17,70 +17,64 @@
 
 #include <cmath>
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void PathAngleCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("PathAngleCritic");
-  const auto & c = p.PathAngleCritic;
-  enabled_               = c.enabled;
-  power_                 = static_cast<unsigned int>(c.cost_power);
-  weight_                = static_cast<float>(c.cost_weight);
-  offset_from_furthest_  = static_cast<size_t>(c.offset_from_furthest);
-  threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
-  max_angle_to_furthest_ = static_cast<float>(c.max_angle_to_furthest);
+void PathAngleCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("PathAngleCritic");
+    const auto& c = p.PathAngleCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
+    offset_from_furthest_ = static_cast<size_t>(c.offset_from_furthest);
+    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+    max_angle_to_furthest_ = static_cast<float>(c.max_angle_to_furthest);
 
-  // Determine reversing capability from top-level vx_min
-  const float vx_min = static_cast<float>(p.vx_min);
-  reversing_allowed_  = (vx_min < 0.0f);
-  forward_preference_ = !reversing_allowed_;
+    // Determine reversing capability from top-level vx_min
+    const float vx_min = static_cast<float>(p.vx_min);
+    reversing_allowed_ = (vx_min < 0.0f);
+    forward_preference_ = !reversing_allowed_;
 }
 
-void PathAngleCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_) {
-    return;
-  }
+void PathAngleCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_) {
+        return;
+    }
 
-  if (utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
-    return;
-  }
+    if (utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+        return;
+    }
 
-  utils::setPathFurthestPointIfNotSet(data);
+    utils::setPathFurthestPointIfNotSet(data);
 
-  auto offseted_idx = std::min(
-    *data.furthest_reached_path_point + offset_from_furthest_,
-    static_cast<size_t>(data.path.x.size() - 1));
+    auto offseted_idx = std::min(*data.furthest_reached_path_point + offset_from_furthest_,
+                                 static_cast<size_t>(data.path.x.size() - 1));
 
-  const float goal_x = data.path.x(offseted_idx);
-  const float goal_y = data.path.y(offseted_idx);
+    const float goal_x = data.path.x(offseted_idx);
+    const float goal_y = data.path.y(offseted_idx);
 
-  if (utils::posePointAngle(
-      data.state.pose.pose, goal_x, goal_y, forward_preference_) < max_angle_to_furthest_)
-  {
-    return;
-  }
+    if (utils::posePointAngle(data.state.pose.pose, goal_x, goal_y, forward_preference_) < max_angle_to_furthest_) {
+        return;
+    }
 
-  const auto yaws_between_points = (goal_y - data.trajectories.y).binaryExpr(
-    goal_x - data.trajectories.x,
-    [](float y, float x) {return std::atan2(y, x);});
+    const auto yaws_between_points =
+        (goal_y - data.trajectories.y).binaryExpr(goal_x - data.trajectories.x, [](float y, float x) {
+            return std::atan2(y, x);
+        });
 
-  const auto yaws = utils::shortest_angular_distance(
-    data.trajectories.yaws, yaws_between_points).abs().eval();
+    const auto yaws = utils::shortest_angular_distance(data.trajectories.yaws, yaws_between_points).abs().eval();
 
-  if (reversing_allowed_ && !forward_preference_) {
-    const auto yaws_between_points_corrected = (yaws < M_PI_2).select(
-      yaws_between_points, utils::normalize_angles(yaws_between_points.array() + M_PI));
-    const auto corrected_yaws = utils::shortest_angular_distance(
-      data.trajectories.yaws, yaws_between_points_corrected).abs();
-    data.costs += (corrected_yaws.rowwise().mean() * weight_).pow(power_);
-      RCLCPP_DEBUG(logger_, "Scored");
-  } else {
-    data.costs += (yaws.rowwise().mean() * weight_).pow(power_);
-      RCLCPP_DEBUG(logger_, "Scored");
-  }
+    if (reversing_allowed_ && !forward_preference_) {
+        const auto yaws_between_points_corrected =
+            (yaws < M_PI_2).select(yaws_between_points, utils::normalize_angles(yaws_between_points.array() + M_PI));
+        const auto corrected_yaws =
+            utils::shortest_angular_distance(data.trajectories.yaws, yaws_between_points_corrected).abs();
+        data.costs += (corrected_yaws.rowwise().mean() * weight_).pow(power_);
+        RCLCPP_DEBUG(logger_, "Scored");
+    } else {
+        data.costs += (yaws.rowwise().mean() * weight_).pow(power_);
+        RCLCPP_DEBUG(logger_, "Scored");
+    }
 }
 
 }  // namespace mppi::critics

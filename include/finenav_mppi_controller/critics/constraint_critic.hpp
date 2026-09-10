@@ -19,33 +19,31 @@
 #include "finenav_mppi_controller/models/state.hpp"
 #include "finenav_mppi_controller/tools/utils.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 
 /**
  * @class mppi::critics::ConstraintCritic
  * @brief Critic objective function for enforcing feasible constraints
  */
-class ConstraintCritic : public CriticFunction
-{
-public:
-  /**
+class ConstraintCritic : public CriticFunction {
+  public:
+    /**
     * @brief Initialize critic
     */
-  void initialize(const finenav_mppi_controller::Params & params) override;
+    void initialize(const finenav_mppi_controller::Params& params) override;
 
-  /**
+    /**
    * @brief Evaluate cost related to goal following
    *
    * @param costs [out] add reference cost values to this tensor
    */
-  void score(CriticData & data, const nav2_mppi_controller::IMapView& map_view) override;
+    void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) override;
 
-protected:
-  unsigned int power_{0};
-  float weight_{0};
-  float min_vel_;
-  float max_vel_;
+  protected:
+    unsigned int power_{0};
+    float weight_{0};
+    float min_vel_;
+    float max_vel_;
 };
 
 }  // namespace mppi::critics

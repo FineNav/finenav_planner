@@ -4,8 +4,9 @@
 #include <Eigen/Core>
 
 using Position3D = Eigen::Vector3d;
+
 namespace nav2_mppi_controller {
-    /**
+/**
      * @brief Read-only map view used by MPPI critics.
      *
      * CostCritic's OpenMPDynamic execution calls getCost(), costAtPose(),
@@ -13,27 +14,26 @@ namespace nav2_mppi_controller {
      * with this execution mode must therefore support concurrent const reads and must
      * not mutate an unsynchronized cache from these methods.
      */
-    class IMapView {
-    public:
-        IMapView() =  default;
-        virtual ~IMapView() = default;
-        // 是否将未知区域视为可通行
-        virtual bool isTrackingUnknown() const = 0;
+class IMapView {
+  public:
+    IMapView() = default;
+    virtual ~IMapView() = default;
+    // 是否将未知区域视为可通行
+    virtual bool isTrackingUnknown() const = 0;
 
-        virtual bool considerFootprint() const = 0;
+    virtual bool considerFootprint() const = 0;
 
-        virtual bool isCollision(
-          float x, float y, float theta) const = 0;
+    virtual bool isCollision(float x, float y, float theta) const = 0;
 
-        virtual float getRadius() const = 0;
+    virtual float getRadius() const = 0;
 
-        // 获取地图索引处的代价值（根据项目需要可改为返回 unsigned char 等）
-        virtual int getCost(const Position3D& pos ) const = 0;
+    // 获取地图索引处的代价值（根据项目需要可改为返回 unsigned char 等）
+    virtual int getCost(const Position3D& pos) const = 0;
 
-        virtual float costAtPose(float x, float y, float theta) const = 0;
+    virtual float costAtPose(float x, float y, float theta) const = 0;
 
-        virtual std::string getBaseFrameID() const = 0;
-    };
-}
+    virtual std::string getBaseFrameID() const = 0;
+};
+}  // namespace nav2_mppi_controller
 
 #endif

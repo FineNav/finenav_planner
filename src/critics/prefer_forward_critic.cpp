@@ -14,35 +14,30 @@
 
 #include "finenav_mppi_controller/critics/prefer_forward_critic.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void PreferForwardCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("PreferForwardCritic");
-  const auto & c = p.PreferForwardCritic;
-  enabled_               = c.enabled;
-  power_                 = static_cast<unsigned int>(c.cost_power);
-  weight_                = static_cast<float>(c.cost_weight);
-  threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+void PreferForwardCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("PreferForwardCritic");
+    const auto& c = p.PreferForwardCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
+    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
 }
 
-void PreferForwardCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_ )
-  {
-    return;
-  }
+void PreferForwardCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_) {
+        return;
+    }
 
-  // Only activate when robot is near the goal (fine positioning)
-  if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path))
-  {
-    return;
-  }
+    // Only activate when robot is near the goal (fine positioning)
+    if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+        return;
+    }
 
-  const auto backward_motion = (-data.state.vx).max(0.0F);
-  data.costs += ((backward_motion * data.model_dt).rowwise().sum() * weight_).pow(power_);
+    const auto backward_motion = (-data.state.vx).max(0.0F);
+    data.costs += ((backward_motion * data.model_dt).rowwise().sum() * weight_).pow(power_);
     RCLCPP_DEBUG(logger_, "Scored");
 }
 

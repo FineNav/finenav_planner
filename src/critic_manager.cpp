@@ -22,69 +22,61 @@
 
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
 
-namespace
-{
+namespace {
 
-bool isFiniteFloat(const float value)
-{
-  constexpr std::uint32_t exponent_mask = 0x7F800000U;
-  return (std::bit_cast<std::uint32_t>(value) & exponent_mask) != exponent_mask;
+bool isFiniteFloat(const float value) {
+    constexpr std::uint32_t exponent_mask = 0x7F800000U;
+    return (std::bit_cast<std::uint32_t>(value) & exponent_mask) != exponent_mask;
 }
 
-const char * criticName(const mppi::critics::CriticFunction & critic)
-{
-  if (dynamic_cast<const mppi::critics::ConstraintCritic *>(&critic)) {
-    return "ConstraintCritic";
-  }
-  if (dynamic_cast<const mppi::critics::CostCritic *>(&critic)) {
-    return "CostCritic";
-  }
-  if (dynamic_cast<const mppi::critics::GoalAngleCritic *>(&critic)) {
-    return "GoalAngleCritic";
-  }
-  if (dynamic_cast<const mppi::critics::GoalCritic *>(&critic)) {
-    return "GoalCritic";
-  }
-  if (dynamic_cast<const mppi::critics::PathAlignCritic *>(&critic)) {
-    return "PathAlignCritic";
-  }
-  if (dynamic_cast<const mppi::critics::PathAngleCritic *>(&critic)) {
-    return "PathAngleCritic";
-  }
-  if (dynamic_cast<const mppi::critics::PathFollowCritic *>(&critic)) {
-    return "PathFollowCritic";
-  }
-  if (dynamic_cast<const mppi::critics::PreferForwardCritic *>(&critic)) {
-    return "PreferForwardCritic";
-  }
-  if (dynamic_cast<const mppi::critics::TwirlingCritic *>(&critic)) {
-    return "TwirlingCritic";
-  }
-  if (dynamic_cast<const mppi::critics::VelocityDeadbandCritic *>(&critic)) {
-    return "VelocityDeadbandCritic";
-  }
-  return "UnknownCritic";
+const char* criticName(const mppi::critics::CriticFunction& critic) {
+    if (dynamic_cast<const mppi::critics::ConstraintCritic*>(&critic)) {
+        return "ConstraintCritic";
+    }
+    if (dynamic_cast<const mppi::critics::CostCritic*>(&critic)) {
+        return "CostCritic";
+    }
+    if (dynamic_cast<const mppi::critics::GoalAngleCritic*>(&critic)) {
+        return "GoalAngleCritic";
+    }
+    if (dynamic_cast<const mppi::critics::GoalCritic*>(&critic)) {
+        return "GoalCritic";
+    }
+    if (dynamic_cast<const mppi::critics::PathAlignCritic*>(&critic)) {
+        return "PathAlignCritic";
+    }
+    if (dynamic_cast<const mppi::critics::PathAngleCritic*>(&critic)) {
+        return "PathAngleCritic";
+    }
+    if (dynamic_cast<const mppi::critics::PathFollowCritic*>(&critic)) {
+        return "PathFollowCritic";
+    }
+    if (dynamic_cast<const mppi::critics::PreferForwardCritic*>(&critic)) {
+        return "PreferForwardCritic";
+    }
+    if (dynamic_cast<const mppi::critics::TwirlingCritic*>(&critic)) {
+        return "TwirlingCritic";
+    }
+    if (dynamic_cast<const mppi::critics::VelocityDeadbandCritic*>(&critic)) {
+        return "VelocityDeadbandCritic";
+    }
+    return "UnknownCritic";
 }
 
 }  // namespace
 
-namespace mppi
-{
+namespace mppi {
 using namespace nav2_mppi_controller;
 
-void CriticManager::on_configure(
-    std::vector<std::unique_ptr<critics::CriticFunction>> & critics,
-    const finenav_mppi_controller::Params & params)
-{
+void CriticManager::on_configure(std::vector<std::unique_ptr<critics::CriticFunction>>& critics,
+                                 const finenav_mppi_controller::Params& params) {
     critics_ = std::move(critics);
     for (size_t q = 0; q < critics_.size(); q++) {
         critics_[q]->initialize(params);
     }
 }
 
-void CriticManager::evalTrajectoriesScores(
-  CriticData & data, const IMapView& map_view) const
-{
+void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map_view) const {
     if (data.critic_cost_breakdown) {
         data.critic_cost_breakdown->clear();
     }
@@ -104,19 +96,16 @@ void CriticManager::evalTrajectoriesScores(
             if (costs_before.size() != data.costs.size()) {
                 continue;
             }
-            CriticCostBreakdown::Contribution contribution(
-              static_cast<std::size_t>(data.costs.size()), 0.0F);
+            CriticCostBreakdown::Contribution contribution(static_cast<std::size_t>(data.costs.size()), 0.0F);
             for (Eigen::Index i = 0; i < data.costs.size(); ++i) {
                 const float before = costs_before(i);
                 const float after = data.costs(i);
                 if (isFiniteFloat(before) && isFiniteFloat(after)) {
                     const float delta = after - before;
-                    contribution[static_cast<std::size_t>(i)] = isFiniteFloat(delta) ?
-                      std::max(delta, 0.0F) :
-                      std::numeric_limits<float>::infinity();
-                } else if (isFiniteFloat(before) && !isFiniteFloat(after)) {
                     contribution[static_cast<std::size_t>(i)] =
-                      std::numeric_limits<float>::infinity();
+                        isFiniteFloat(delta) ? std::max(delta, 0.0F) : std::numeric_limits<float>::infinity();
+                } else if (isFiniteFloat(before) && !isFiniteFloat(after)) {
+                    contribution[static_cast<std::size_t>(i)] = std::numeric_limits<float>::infinity();
                 }
             }
             data.critic_cost_breakdown->names.emplace_back(criticName(*critics_[q]));

@@ -15,42 +15,36 @@
 
 #include "finenav_mppi_controller/critics/goal_critic.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void GoalCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("GoalCritic");
-  const auto & c = p.GoalCritic;
-  enabled_               = c.enabled;
-  power_                 = static_cast<unsigned int>(c.cost_power);
-  weight_                = static_cast<float>(c.cost_weight);
-  threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+void GoalCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("GoalCritic");
+    const auto& c = p.GoalCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
+    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
 }
 
-void GoalCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_ )
-  {
-    return;
-  }
+void GoalCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_) {
+        return;
+    }
 
-  // Only activate when robot is near the goal
-  if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path))
-  {
-    return;
-  }
+    // Only activate when robot is near the goal
+    if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+        return;
+    }
 
-  const auto goal_idx = data.path.x.size() - 1;
+    const auto goal_idx = data.path.x.size() - 1;
 
-  const auto goal_x = data.path.x(goal_idx);
-  const auto goal_y = data.path.y(goal_idx);
+    const auto goal_x = data.path.x(goal_idx);
+    const auto goal_y = data.path.y(goal_idx);
 
-  const auto dists = ((data.trajectories.x - goal_x).square() +
-    (data.trajectories.y - goal_y).square()).sqrt();
+    const auto dists = ((data.trajectories.x - goal_x).square() + (data.trajectories.y - goal_y).square()).sqrt();
 
-  data.costs += (dists.rowwise().mean() * weight_).pow(power_);
+    data.costs += (dists.rowwise().mean() * weight_).pow(power_);
     RCLCPP_DEBUG(logger_, "Scored");
 }
 

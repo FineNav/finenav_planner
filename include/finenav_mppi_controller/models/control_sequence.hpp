@@ -17,28 +17,25 @@
 
 #include "finenav_mppi_controller/models/eigen_types.hpp"
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @struct mppi::models::ControlSequence
  * @brief A control sequence over time (e.g. trajectory)
  */
-struct ControlSequence
-{
-  Vector vx;
-  Vector vy;
-  Vector wz;
+struct ControlSequence {
+    Vector vx;
+    Vector vy;
+    Vector wz;
 
-  void reset(unsigned int time_steps)
-  {
-    vx.resize(time_steps);
-    vy.resize(time_steps);
-    wz.resize(time_steps);
-    vx.setZero();
-    vy.setZero();
-    wz.setZero();
-  }
+    void reset(unsigned int time_steps) {
+        vx.resize(time_steps);
+        vy.resize(time_steps);
+        wz.resize(time_steps);
+        vx.setZero();
+        vy.setZero();
+        wz.setZero();
+    }
 };
 
 }  // namespace mppi::models

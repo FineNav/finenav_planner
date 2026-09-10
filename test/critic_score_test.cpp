@@ -146,8 +146,8 @@ TEST(CriticScoreTest, ConstraintCriticKeepsStationaryAckermannCostFinite) {
     critic.score(fixture.data, map_view);
 
     for (Eigen::Index i = 0; i < fixture.costs.size(); ++i) {
-      EXPECT_TRUE(std::isfinite(fixture.costs(i)));
-      EXPECT_NEAR(fixture.costs(i), 0.32F, 1e-6F);
+        EXPECT_TRUE(std::isfinite(fixture.costs(i)));
+        EXPECT_NEAR(fixture.costs(i), 0.32F, 1e-6F);
     }
 }
 
@@ -285,8 +285,8 @@ TEST(CriticScoreTest, PathAngleCriticScoresHeadingError) {
 }
 
 TEST(CriticScoreTest, PathAlignCriticScoresLateralDeviation) {
-  finenav_mppi_controller::Params params;
-  params.PathAlignCritic.offset_from_furthest = 1;
+    finenav_mppi_controller::Params params;
+    params.PathAlignCritic.offset_from_furthest = 1;
     params.PathAlignCritic.trajectory_point_step = 1;
     CriticTestData fixture;
     fixture.state.pose.pose.position.x = -1.0;
@@ -300,7 +300,7 @@ TEST(CriticScoreTest, PathAlignCriticScoresLateralDeviation) {
 
     critic.score(fixture.data, map_view);
 
-  expectPositiveCosts(fixture);
+    expectPositiveCosts(fixture);
 }
 
 TEST(CriticScoreTest, PathAlignCriticKeepsCachedPathPointBetweenSparsePathSamples) {

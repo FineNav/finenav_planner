@@ -14,29 +14,24 @@
 
 #include "finenav_mppi_controller/critics/twirling_critic.hpp"
 
-namespace mppi::critics
-{
+namespace mppi::critics {
 using namespace nav2_mppi_controller;
 
-void TwirlingCritic::initialize(const finenav_mppi_controller::Params & p)
-{
-  logger_ = rclcpp::get_logger("TwirlingCritic");
-  const auto & c = p.TwirlingCritic;
-  enabled_ = c.enabled;
-  power_   = static_cast<unsigned int>(c.cost_power);
-  weight_  = static_cast<float>(c.cost_weight);
+void TwirlingCritic::initialize(const finenav_mppi_controller::Params& p) {
+    logger_ = rclcpp::get_logger("TwirlingCritic");
+    const auto& c = p.TwirlingCritic;
+    enabled_ = c.enabled;
+    power_ = static_cast<unsigned int>(c.cost_power);
+    weight_ = static_cast<float>(c.cost_weight);
 }
 
+void TwirlingCritic::score(CriticData& data, const IMapView& map_view) {
+    if (!this->enabled_) {
+        return;
+    }
 
-void TwirlingCritic::score(CriticData & data, const IMapView& map_view)
-{
-  if (!this->enabled_)
-  {
-    return;
-  }
-
-  const auto wz = data.state.wz.abs();
-  data.costs += (wz.rowwise().mean() * weight_).pow(power_);
+    const auto wz = data.state.wz.abs();
+    data.costs += (wz.rowwise().mean() * weight_).pow(power_);
     RCLCPP_DEBUG(logger_, "Scored");
 }
 

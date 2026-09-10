@@ -22,14 +22,11 @@
 #include "finenav_mppi_controller/models/state.hpp"
 #include "finenav_mppi_controller/tools/utils.hpp"
 
+namespace mppi::critics {
 
-namespace mppi::critics
-{
-
-struct CostCriticExecutionOptions
-{
-  std::size_t num_threads{1};
-  std::size_t chunk_size{1};
+struct CostCriticExecutionOptions {
+    std::size_t num_threads{1};
+    std::size_t chunk_size{1};
 };
 
 /**
@@ -37,30 +34,27 @@ struct CostCriticExecutionOptions
  * @brief Critic objective function for avoiding obstacles using costmap's inflated cost
  */
 
-class CostCritic : public CriticFunction
-{
-public:
-  explicit CostCritic(CostCriticExecutionOptions options = {});
-  ~CostCritic() override;
+class CostCritic : public CriticFunction {
+  public:
+    explicit CostCritic(CostCriticExecutionOptions options = {});
+    ~CostCritic() override;
 
-  /**
+    /**
     * @brief Initialize critic
     */
-  void initialize(const finenav_mppi_controller::Params & params) override;
+    void initialize(const finenav_mppi_controller::Params& params) override;
 
-  /**
+    /**
    * @brief Evaluate cost related to obstacle avoidance
    *
    * @param costs [out] add obstacle cost values to this tensor
    */
-  void score(CriticData & data, const nav2_mppi_controller::IMapView & map_view) override;
+    void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) override;
 
-protected:
-  void executeTrajectories(
-    std::size_t count,
-    const std::function<void(std::size_t)> & callback);
+  protected:
+    void executeTrajectories(std::size_t count, const std::function<void(std::size_t)>& callback);
 
-  /**
+    /**
     * @brief Checks if cost represents a collision
     * @param cost Point cost at pose center
     * @param x X of pose
@@ -68,39 +62,31 @@ protected:
     * @param theta theta of pose
     * @return bool if in collision
     */
-  bool inCollision(
-    float x, float y, float theta,
-    const nav2_mppi_controller::IMapView & map_view) const
-  {
-    return map_view.isCollision(x, y, theta);
-  }
+    bool inCollision(float x, float y, float theta, const nav2_mppi_controller::IMapView& map_view) const {
+        return map_view.isCollision(x, y, theta);
+    }
 
-
-  /**
+    /**
     * @brief cost at a robot pose
     * @param x X of pose
     * @param y Y of pose
     * @return Collision information at pose
     */
-  float costAtPose(float x, float y, const nav2_mppi_controller::IMapView & map_view) const
-  {
-    // 使用 Position3D 作为参数传入 map_view
-    return map_view.getCost(
-      Position3D{static_cast<double>(x),
-        static_cast<double>(y),
-        0.0});
-  }
+    float costAtPose(float x, float y, const nav2_mppi_controller::IMapView& map_view) const {
+        // 使用 Position3D 作为参数传入 map_view
+        return map_view.getCost(Position3D{static_cast<double>(x), static_cast<double>(y), 0.0});
+    }
 
-protected:
-//  bool consider_footprint_{true};
-  float collision_cost_{0};
-  float critical_cost_{0};
-  float weight_{0};
+  protected:
+    //  bool consider_footprint_{true};
+    float collision_cost_{0};
+    float critical_cost_{0};
+    float weight_{0};
 
-  float near_goal_distance_;
-  unsigned int power_{0};
-  CostCriticExecutionOptions execution_options_;
-  int observed_openmp_threads_{1};
+    float near_goal_distance_;
+    unsigned int power_{0};
+    CostCriticExecutionOptions execution_options_;
+    int observed_openmp_threads_{1};
 };
 
 }  // namespace mppi::critics

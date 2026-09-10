@@ -17,35 +17,32 @@
 
 #include <limits>
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @struct mppi::models::ControlConstraints
  * @brief Constraints on control
  */
-struct ControlConstraints
-{
-  float vx_max{0.0F};
-  float vx_min{0.0F};
-  float vy{0.0F};
-  float wz{0.0F};
-  float ax_min{-std::numeric_limits<float>::infinity()};
-  float ax_max{std::numeric_limits<float>::infinity()};
-  float ay_min{-std::numeric_limits<float>::infinity()};
-  float ay_max{std::numeric_limits<float>::infinity()};
-  float az_max{std::numeric_limits<float>::infinity()};
+struct ControlConstraints {
+    float vx_max{0.0F};
+    float vx_min{0.0F};
+    float vy{0.0F};
+    float wz{0.0F};
+    float ax_min{-std::numeric_limits<float>::infinity()};
+    float ax_max{std::numeric_limits<float>::infinity()};
+    float ay_min{-std::numeric_limits<float>::infinity()};
+    float ay_max{std::numeric_limits<float>::infinity()};
+    float az_max{std::numeric_limits<float>::infinity()};
 };
 
 /**
  * @struct mppi::models::SamplingStd
  * @brief Noise parameters for sampling trajectories
  */
-struct SamplingStd
-{
-  float vx;
-  float vy;
-  float wz;
+struct SamplingStd {
+    float vx;
+    float vy;
+    float wz;
 };
 
 }  // namespace mppi::models

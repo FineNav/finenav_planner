@@ -25,21 +25,19 @@
 #include <vector>
 
 //#include "finenav_mppi_controller/tools/path_handler.hpp"
-#include "finenav_mppi_controller/tools/trajectory_visualizer.hpp"
 #include "finenav_mppi_controller/models/constraints.hpp"
+#include "finenav_mppi_controller/tools/trajectory_visualizer.hpp"
 #include "finenav_mppi_controller/tools/utils.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 
-
-#include "finenav_core/plan/planner_concept.hpp"
 #include "finenav_core/algo_configurator.hpp"
+#include "finenav_core/plan/planner_concept.hpp"
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
-#include "finenav_mppi_controller/optimizer.hpp"
 #include "finenav_mppi_controller/map_view_def.hpp"
+#include "finenav_mppi_controller/optimizer.hpp"
 
-namespace nav2_mppi_controller
-{
+namespace nav2_mppi_controller {
 
 using namespace mppi;  // NOLINT
 
@@ -48,18 +46,14 @@ using namespace mppi;  // NOLINT
  * @brief Main plugin controller for MPPI Controller
  */
 
-
-class MPPIController
-{
-public:
-  /**
+class MPPIController {
+  public:
+    /**
     * @brief Constructor for mppi::MPPIController
     */
     MPPIController() = default;
 
-    void setLogger(const rclcpp::Logger& logger) {
-        logger_ = logger;
-    }
+    void setLogger(const rclcpp::Logger& logger) { logger_ = logger; }
 
     void setVisualizer(finenav::viz::FineNavVisualizer& visualizer) {
         framework_visualizer_ = &visualizer;
@@ -68,41 +62,34 @@ public:
         }
     }
 
-    static constexpr finenav::core::IOProfile InputProfile = {
-        .pose = true,
-        .vel  = false,
-        .accel= false,
-        .time = false
-    };
-    static constexpr finenav::core::IOProfile OutputProfile = {
-        .pose = true,
-        .vel  = true,
-        .accel= false,
-        .time = false
-    };
+    static constexpr finenav::core::IOProfile InputProfile = {.pose = true,
+                                                              .vel = false,
+                                                              .accel = false,
+                                                              .time = false};
+    static constexpr finenav::core::IOProfile OutputProfile = {.pose = true,
+                                                               .vel = true,
+                                                               .accel = false,
+                                                               .time = false};
 
     using IMapView = nav2_mppi_controller::IMapView;
     using Context = finenav::core::PlanningContext<MPPIController>;
     using ConfigType = finenav_mppi_controller::Params;
-    void configure(const ConfigType& params) {              //应该传入参数 因测试先去除
+
+    void configure(const ConfigType& params) {  //应该传入参数 因测试先去除
         if (params.CostCritic.num_threads <= 0 || params.CostCritic.chunk_size <= 0) {
-            throw std::invalid_argument(
-                "CostCritic.num_threads and CostCritic.chunk_size must be greater than zero");
+            throw std::invalid_argument("CostCritic.num_threads and CostCritic.chunk_size must be greater than zero");
         }
 
-        if (params.visualize &&
-            (params.visualizer_trajectory_step <= 0 || params.visualizer_time_step <= 0 ||
-            params.visualizer_max_trajectories <= 0 || params.visualizer_publish_rate <= 0.0)) {
+        if (params.visualize && (params.visualizer_trajectory_step <= 0 || params.visualizer_time_step <= 0 ||
+                                 params.visualizer_max_trajectories <= 0 || params.visualizer_publish_rate <= 0.0)) {
             throw std::invalid_argument(
                 "Visualizer sampling, maximum trajectories, and publish rate must be greater "
                 "than zero");
         }
 
-        if (!std::isfinite(params.ax_min) || !std::isfinite(params.ax_max) ||
-            !std::isfinite(params.ay_min) || !std::isfinite(params.ay_max) ||
-            !std::isfinite(params.az_max) || params.ax_min > 0.0 ||
-            params.ax_max < 0.0 || params.ay_min > 0.0 || params.ay_max < 0.0 ||
-            params.az_max < 0.0) {
+        if (!std::isfinite(params.ax_min) || !std::isfinite(params.ax_max) || !std::isfinite(params.ay_min) ||
+            !std::isfinite(params.ay_max) || !std::isfinite(params.az_max) || params.ax_min > 0.0 ||
+            params.ax_max < 0.0 || params.ay_min > 0.0 || params.ay_max < 0.0 || params.az_max < 0.0) {
             throw std::invalid_argument(
                 "Acceleration limits must satisfy ax_min <= 0 <= ax_max, "
                 "ay_min <= 0 <= ay_max, and az_max >= 0");
@@ -110,10 +97,8 @@ public:
 
         registerCritic(std::make_unique<critics::ConstraintCritic>());
         critics::CostCriticExecutionOptions cost_critic_options;
-        cost_critic_options.num_threads = static_cast<std::size_t>(
-          params.CostCritic.num_threads);
-        cost_critic_options.chunk_size = static_cast<std::size_t>(
-          params.CostCritic.chunk_size);
+        cost_critic_options.num_threads = static_cast<std::size_t>(params.CostCritic.num_threads);
+        cost_critic_options.chunk_size = static_cast<std::size_t>(params.CostCritic.chunk_size);
         registerCritic(std::make_unique<critics::CostCritic>(cost_critic_options));
         registerCritic(std::make_unique<critics::GoalAngleCritic>());
         registerCritic(std::make_unique<critics::GoalCritic>());
@@ -129,11 +114,9 @@ public:
         visualizer_config_.trajectory_topic = params.visualizer_trajectory_topic;
         visualizer_config_.optimal_path_topic = params.visualizer_optimal_path_topic;
         visualizer_config_.reference_path_topic = params.visualizer_reference_path_topic;
-        visualizer_config_.trajectory_step = static_cast<std::size_t>(
-          params.visualizer_trajectory_step);
+        visualizer_config_.trajectory_step = static_cast<std::size_t>(params.visualizer_trajectory_step);
         visualizer_config_.time_step = static_cast<std::size_t>(params.visualizer_time_step);
-        visualizer_config_.max_trajectories = static_cast<std::size_t>(
-          params.visualizer_max_trajectories);
+        visualizer_config_.max_trajectories = static_cast<std::size_t>(params.visualizer_max_trajectories);
         visualizer_config_.publish_rate = params.visualizer_publish_rate;
         if (params.visualize) {
             if (framework_visualizer_) {
@@ -144,25 +127,22 @@ public:
             visualizer_.reset();
         }
 
-        std::cout<<"[nav2_mppi_controller] Critics registered. Initializing optimizer..."<<std::endl;
-        std::cout<<"[nav2_mppi_controller] Number of critics: "<<critics_.size()<<std::endl;
+        std::cout << "[nav2_mppi_controller] Critics registered. Initializing optimizer..." << std::endl;
+        std::cout << "[nav2_mppi_controller] Number of critics: " << critics_.size() << std::endl;
 
-        optimizer_.initialize(
-            "MPPIController",
-            critics_,
-            params
-            );
+        optimizer_.initialize("MPPIController", critics_, params);
         configured_ = true;
-       //TODO:初始化过程需要完善
+        //TODO:初始化过程需要完善
     }
 
-     std::optional<finenav::core::Trajectory<OutputProfile>>plan(const finenav::core::PlanningContext<MPPIController>& ctx, const IMapView& map_view) {
+    std::optional<finenav::core::Trajectory<OutputProfile>> plan(
+        const finenav::core::PlanningContext<MPPIController>& ctx, const IMapView& map_view) {
         if (ctx.ref_traj.poses.empty()) {
             return std::nullopt;
         }
 
         using Clock = std::chrono::steady_clock;
-        using Ms    = std::chrono::duration<double, std::milli>;
+        using Ms = std::chrono::duration<double, std::milli>;
         const auto t_plan_start = Clock::now();
 
         finenav::core::Trajectory<OutputProfile> traj;
@@ -179,102 +159,89 @@ public:
         const auto& twist = robot_state.twist;
 
         const auto t_optimize_start = Clock::now();
-        auto optimization_result = computeVelocityCommands(
-            start_pose_stamped,
-            twist,
-            map_view);
+        auto optimization_result = computeVelocityCommands(start_pose_stamped, twist, map_view);
         const double ms_optimize = Ms(Clock::now() - t_optimize_start).count();
 
         if (visualizer_enabled_) {
-            visualizer_.submit(
-                optimizer_.getGeneratedTrajectories(),
-                optimizer_.getCriticCostBreakdown(),
-                optimization_result.trajectory,
-                path,
-                visualization_generation_.load(std::memory_order_relaxed));
+            visualizer_.submit(optimizer_.getGeneratedTrajectories(), optimizer_.getCriticCostBreakdown(),
+                               optimization_result.trajectory, path,
+                               visualization_generation_.load(std::memory_order_relaxed));
         }
 
         // 装填输出轨迹
 
-    const auto& optimized_trajectory = optimization_result.trajectory;
-    const auto& control_seq = optimization_result.controls;
-    // 填充轨迹点 (pose + twist)
-    const size_t n = optimized_trajectory.rows();
-    traj.poses.reserve(n);
-    traj.twists.reserve(n);
-    for (size_t i = 0; i < n; ++i) {
-        // pose: x, y, yaw -> quaternion
-        geometry_msgs::msg::Pose pose;
-        pose.position.x = optimized_trajectory(i, 0);
-        pose.position.y = optimized_trajectory(i, 1);
-        pose.position.z = 0.0;
-        const float yaw = optimized_trajectory(i, 2);
-        pose.orientation.z = std::sin(yaw * 0.5f);
-        pose.orientation.w = std::cos(yaw * 0.5f);
-        traj.poses.push_back(pose);
+        const auto& optimized_trajectory = optimization_result.trajectory;
+        const auto& control_seq = optimization_result.controls;
+        // 填充轨迹点 (pose + twist)
+        const size_t n = optimized_trajectory.rows();
+        traj.poses.reserve(n);
+        traj.twists.reserve(n);
+        for (size_t i = 0; i < n; ++i) {
+            // pose: x, y, yaw -> quaternion
+            geometry_msgs::msg::Pose pose;
+            pose.position.x = optimized_trajectory(i, 0);
+            pose.position.y = optimized_trajectory(i, 1);
+            pose.position.z = 0.0;
+            const float yaw = optimized_trajectory(i, 2);
+            pose.orientation.z = std::sin(yaw * 0.5f);
+            pose.orientation.w = std::cos(yaw * 0.5f);
+            traj.poses.push_back(pose);
 
-        // twist: vx, vy, wz from control sequence
-        geometry_msgs::msg::Twist twist;
-        twist.linear.x  = control_seq(i, 0);
-        twist.angular.z = control_seq(i, 1);
-        twist.linear.y  = control_seq(i, 2);
-        traj.twists.push_back(twist);
+            // twist: vx, vy, wz from control sequence
+            geometry_msgs::msg::Twist twist;
+            twist.linear.x = control_seq(i, 0);
+            twist.angular.z = control_seq(i, 1);
+            twist.linear.y = control_seq(i, 2);
+            traj.twists.push_back(twist);
+        }
+
+        const double ms_total = Ms(Clock::now() - t_plan_start).count();
+        {
+            static rclcpp::Clock throttle_clk{RCL_STEADY_TIME};
+            RCLCPP_INFO_THROTTLE(logger_, throttle_clk, 2000,
+                                 "\n[MPPIController] plan() timing\n"
+                                 "  evalControl (optimize) : %7.2f ms\n"
+                                 "  total plan()           : %7.2f ms",
+                                 ms_optimize, ms_total);
+        }
+
+        return traj;
     }
 
-    const double ms_total = Ms(Clock::now() - t_plan_start).count();
-    {
-        static rclcpp::Clock throttle_clk{RCL_STEADY_TIME};
-        RCLCPP_INFO_THROTTLE(
-            logger_, throttle_clk, 2000,
-            "\n[MPPIController] plan() timing\n"
-            "  evalControl (optimize) : %7.2f ms\n"
-            "  total plan()           : %7.2f ms",
-            ms_optimize, ms_total);
-    }
-
-    return traj;
-}
-
-
-  /**
+    /**
     * @brief Set new reference path to track
     * @param path Path to track
     */
-  void setPlan(const nav_msgs::msg::Path & path);
+    void setPlan(const nav_msgs::msg::Path& path);
 
-  /**
+    /**
     * @brief Set new speed limit from callback
     * @param speed_limit Speed limit to use
     * @param percentage Bool if the speed limit is absolute or relative
     */
-  void setSpeedLimit(const double & speed_limit, const bool & percentage);
+    void setSpeedLimit(const double& speed_limit, const bool& percentage);
 
-  /**
+    /**
    * @brief Reset optimizer state at Episode boundary (new goal).
    *        Called by ControlLayer whenever a new Action Goal arrives.
    *        Clears control_sequence_ so the next plan() call starts from
    *        a zero warm-start, independent of any previous planning direction.
    */
-  void reset() {
-      // Called by ControlLayer at the episode boundary on the same worker as plan().
-      const auto generation = visualization_generation_.fetch_add(
-        1, std::memory_order_relaxed) + 1;
-      if (visualizer_enabled_) {
-        visualizer_.clear(generation);
-      }
-      optimizer_.reset();
-  }
-
-    void registerCritic (std::unique_ptr<critics::CriticFunction> critic) {
-        critics_.push_back(std::move(critic));        //TODO:在初始化的时候要换成注册
+    void reset() {
+        // Called by ControlLayer at the episode boundary on the same worker as plan().
+        const auto generation = visualization_generation_.fetch_add(1, std::memory_order_relaxed) + 1;
+        if (visualizer_enabled_) {
+            visualizer_.clear(generation);
+        }
+        optimizer_.reset();
     }
 
+    void registerCritic(std::unique_ptr<critics::CriticFunction> critic) {
+        critics_.push_back(std::move(critic));  //TODO:在初始化的时候要换成注册
+    }
 
     template <typename DataPacketT>
-    nav_msgs::msg::Path convertDataPacketToPath(
-        const DataPacketT & data,
-        const std::string & frame_id)
-    {
+    nav_msgs::msg::Path convertDataPacketToPath(const DataPacketT& data, const std::string& frame_id) {
         nav_msgs::msg::Path path;
 
         path.header.frame_id = frame_id;
@@ -285,7 +252,7 @@ public:
 
             path.poses.reserve(data.poses.size());
 
-            for (const auto & pose : data.poses) {
+            for (const auto& pose : data.poses) {
                 geometry_msgs::msg::PoseStamped ps;
                 ps.header = path.header;
                 ps.pose = pose;
@@ -297,16 +264,15 @@ public:
         return path;
     }
 
-
-protected:
+  protected:
     /**
     * @brief Visualize trajectories
     * @param transformed_plan Transformed input plan
     */
-//    void visualize(
-//        nav_msgs::msg::Path transformed_plan,
-//        const builtin_interfaces::msg::Time & cmd_stamp,
-//        double z_height);
+    //    void visualize(
+    //        nav_msgs::msg::Path transformed_plan,
+    //        const builtin_interfaces::msg::Time & cmd_stamp,
+    //        double z_height);
 
     /**
     * @brief Main method to compute velocities using the optimizer
@@ -314,47 +280,44 @@ protected:
     * @param robot_speed Robot speed
     * @param goal_checker Pointer to the goal checker for awareness if completed task
     */
-	// geometry_msgs::msg::TwistStamped computeVelocityCommands(
-    OptimizationResult computeVelocityCommands(
-    	const geometry_msgs::msg::PoseStamped & robot_pose,
-  		const geometry_msgs::msg::Twist & robot_speed,
-    	const IMapView& map_view)
-	{
+    // geometry_msgs::msg::TwistStamped computeVelocityCommands(
+    OptimizationResult computeVelocityCommands(const geometry_msgs::msg::PoseStamped& robot_pose,
+                                               const geometry_msgs::msg::Twist& robot_speed, const IMapView& map_view) {
 #ifdef BENCHMARK_TESTING
-    auto start = std::chrono::system_clock::now();
+        auto start = std::chrono::system_clock::now();
 #endif
 
-	//  if (clock_->now() - last_time_called_ > rclcpp::Duration::from_seconds(reset_period_)) {
-	//    reset();
-	//  }
-//  	last_time_called_ = clock_->now();
+        //  if (clock_->now() - last_time_called_ > rclcpp::Duration::from_seconds(reset_period_)) {
+        //    reset();
+        //  }
+        //  	last_time_called_ = clock_->now();
 
-//  	std::lock_guard<std::mutex> param_lock(*parameters_handler_->getLock());
-//
+        //  	std::lock_guard<std::mutex> param_lock(*parameters_handler_->getLock());
+        //
 
-    const auto result = optimizer_.evalControl(robot_pose, robot_speed, path_, map_view);
+        const auto result = optimizer_.evalControl(robot_pose, robot_speed, path_, map_view);
 
 #ifdef BENCHMARK_TESTING
-    auto end = std::chrono::system_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    RCLCPP_INFO(logger_, "Control loop execution time: %ld [ms]", duration);
+        auto end = std::chrono::system_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        RCLCPP_INFO(logger_, "Control loop execution time: %ld [ms]", duration);
 #endif
 
-//  	if (visualize_) {
-//    	double z_height = 0.06;
-//    	const std::string base_frame = map_view->getBaseFrameID();
-//    	try {
-//      	auto tfst = tf_buffer_->lookupTransform(
-//        	map_view.getGlobalFrameID(), base_frame,  cmd.header.stamp);
-//      		z_height = tfst.transform.translation.z;
-//    	} catch (const tf2::TransformException & ex) {
-//      	RCLCPP_WARN(logger_, "Failed to get transform %s -> %s: %s",
-//                  map_view.getGlobalFrameID().c_str(), base_frame.c_str(), ex.what());
-//    	}
-//    	visualize(std::move(path_, cmd.header.stamp, z_height);
-//  	}
-	return result;
-}
+        //  	if (visualize_) {
+        //    	double z_height = 0.06;
+        //    	const std::string base_frame = map_view->getBaseFrameID();
+        //    	try {
+        //      	auto tfst = tf_buffer_->lookupTransform(
+        //        	map_view.getGlobalFrameID(), base_frame,  cmd.header.stamp);
+        //      		z_height = tfst.transform.translation.z;
+        //    	} catch (const tf2::TransformException & ex) {
+        //      	RCLCPP_WARN(logger_, "Failed to get transform %s -> %s: %s",
+        //                  map_view.getGlobalFrameID().c_str(), base_frame.c_str(), ex.what());
+        //    	}
+        //    	visualize(std::move(path_, cmd.header.stamp, z_height);
+        //  	}
+        return result;
+    }
 
     nav_msgs::msg::Path path_;
 
@@ -370,14 +333,12 @@ protected:
     bool visualize_;
 
     double reset_period_;
-  // Last time computeVelocityCommands was called
-//  rclcpp::Time last_time_called_;
+    // Last time computeVelocityCommands was called
+    //  rclcpp::Time last_time_called_;
 };
 
 }  // namespace nav2_mppi_controller
 
-
 FINENAV_REGISTER_ALGO_CONFIG(nav2_mppi_controller::MPPIController, finenav_mppi_controller)
-
 
 #endif  // NAV2_MPPI_CONTROLLER__CONTROLLER_HPP_

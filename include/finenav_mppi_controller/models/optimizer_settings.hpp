@@ -18,24 +18,22 @@
 #include <cstddef>
 #include "finenav_mppi_controller/models/constraints.hpp"
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @struct mppi::models::OptimizerSettings
  * @brief Settings for the optimizer to use
  */
-struct OptimizerSettings
-{
-  models::ControlConstraints constraints{};
-  models::SamplingStd sampling_std{0, 0, 0};
-  float model_dt{0};
-  float temperature{0};
-  float gamma{0};
-  unsigned int batch_size{0};
-  unsigned int time_steps{0};
-  unsigned int iteration_count{0};
-  size_t retry_attempt_limit{0};
+struct OptimizerSettings {
+    models::ControlConstraints constraints{};
+    models::SamplingStd sampling_std{0, 0, 0};
+    float model_dt{0};
+    float temperature{0};
+    float gamma{0};
+    unsigned int batch_size{0};
+    unsigned int time_steps{0};
+    unsigned int iteration_count{0};
+    size_t retry_attempt_limit{0};
 };
 
 }  // namespace mppi::models

@@ -17,32 +17,29 @@
 
 #include "finenav_mppi_controller/models/eigen_types.hpp"
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 /**
  * @class mppi::models::Trajectories
  * @brief Candidate Trajectories
  */
-struct Trajectories
-{
-  BatchArray x;
-  BatchArray y;
-  BatchArray yaws;
+struct Trajectories {
+    BatchArray x;
+    BatchArray y;
+    BatchArray yaws;
 
-  /**
+    /**
     * @brief Reset state data
     */
-  void reset(unsigned int batch_size, unsigned int time_steps)
-  {
-    x.resize(batch_size, time_steps);
-    y.resize(batch_size, time_steps);
-    yaws.resize(batch_size, time_steps);
+    void reset(unsigned int batch_size, unsigned int time_steps) {
+        x.resize(batch_size, time_steps);
+        y.resize(batch_size, time_steps);
+        yaws.resize(batch_size, time_steps);
 
-    x.setZero();
-    y.setZero();
-    yaws.setZero();
-  }
+        x.setZero();
+        y.setZero();
+        yaws.setZero();
+    }
 };
 
 }  // namespace mppi::models

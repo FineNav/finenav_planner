@@ -3,8 +3,7 @@
 
 #include <Eigen/Core>
 
-namespace mppi::models
-{
+namespace mppi::models {
 
 using BatchArray = Eigen::Array<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 using Vector = Eigen::ArrayXf;
