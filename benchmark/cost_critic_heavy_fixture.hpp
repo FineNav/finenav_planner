@@ -1,6 +1,9 @@
-// Copyright (c) 2026.
-// IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
-// All rights reserved.
+/* Copyright (c) 2026 IWIN-FINS Lab, Shanghai Jiao Tong University.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
 
 #ifndef FINENAV_PLANNER__FINENAV_MPPI_CONTROLLER__BENCHMARK__COST_CRITIC_HEAVY_FIXTURE_HPP_
 #define FINENAV_PLANNER__FINENAV_MPPI_CONTROLLER__BENCHMARK__COST_CRITIC_HEAVY_FIXTURE_HPP_

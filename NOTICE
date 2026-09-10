@@ -1,0 +1,11 @@
+This product contains code from nav2_mppi_controller.
+
+Copyright (c) 2021-2022 Fast Sense Studio
+Copyright (c) 2022-2023 Samsung Research America
+Copyright (c) 2023 Open Navigation LLC
+
+Licensed under the MIT License.
+See LICENSES/MIT.txt for the complete license text.
+
+Some source files also incorporate code released under the Apache License 2.0.
+See LICENSES/Apache-2.0.txt and the notices in the individual source files.
