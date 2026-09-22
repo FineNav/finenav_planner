@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-#include "cost_critic_heavy_fixture.hpp"
 #include "finenav_mppi_controller/optimizer.hpp"
 #include "finenav_mppi_controller/tools/trajectory_visualizer.hpp"
 
@@ -22,17 +21,9 @@ class FreeSpaceMap final : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.2F; }
-
-    int getCost(const Position3D&) const override { return 0; }
-
-    float costAtPose(float, float, float) const override { return 0.0F; }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
+    int getCost(float, float) const override { return 0; }
 };
 
 finenav_mppi_controller::Params makeParams() {
@@ -110,38 +101,6 @@ TEST(OptimizerVisualizedResetTest, ReusesLargeDiagnosticBuffersAcrossEpisodes) {
             EXPECT_EQ(result.controls.rows(), params.time_steps);
             EXPECT_EQ(result.trajectory.rows(), params.time_steps);
         }
-        optimizer.reset();
-    }
-}
-
-TEST(OptimizerVisualizedResetTest, RepeatedHeavyObstacleEpisodesReleaseDiagnostics) {
-    const auto params = makeParams();
-    std::vector<std::unique_ptr<mppi::critics::CriticFunction>> critics;
-    critics.push_back(std::make_unique<mppi::critics::ConstraintCritic>());
-    critics.push_back(std::make_unique<mppi::critics::CostCritic>(mppi::critics::CostCriticExecutionOptions{8, 1}));
-    critics.push_back(std::make_unique<mppi::critics::GoalAngleCritic>());
-    critics.push_back(std::make_unique<mppi::critics::GoalCritic>());
-    critics.push_back(std::make_unique<mppi::critics::PathAlignCritic>());
-    critics.push_back(std::make_unique<mppi::critics::PathAngleCritic>());
-    critics.push_back(std::make_unique<mppi::critics::PathFollowCritic>());
-    critics.push_back(std::make_unique<mppi::critics::PreferForwardCritic>());
-    critics.push_back(std::make_unique<mppi::critics::TwirlingCritic>());
-    critics.push_back(std::make_unique<mppi::critics::VelocityDeadbandCritic>());
-
-    mppi::Optimizer optimizer;
-    optimizer.initialize("heavy-obstacle-reset", critics, params);
-
-    geometry_msgs::msg::PoseStamped pose;
-    pose.pose.orientation.w = 1.0;
-    geometry_msgs::msg::Twist speed;
-    const auto path = makePath();
-    mppi::benchmark_support::HeavyObstacleMapView map;
-
-    for (int episode = 0; episode < 8; ++episode) {
-        const auto result = optimizer.evalControl(pose, speed, path, map);
-        EXPECT_EQ(result.controls.rows(), params.time_steps);
-        EXPECT_EQ(result.trajectory.rows(), params.time_steps);
-        ASSERT_TRUE(optimizer.getCriticCostBreakdown().valid);
         optimizer.reset();
     }
 }

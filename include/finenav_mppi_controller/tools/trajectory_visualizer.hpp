@@ -53,8 +53,6 @@ namespace mppi {
 struct VisualizerConfig {
     std::string frame_id{"map"};
     std::string trajectory_topic{"/mppi_debug/trajectories"};
-    std::string optimal_path_topic{"/mppi_debug/optimal_trajectory"};
-    std::string reference_path_topic{"/mppi_debug/reference_path"};
     std::size_t trajectory_step{5};
     std::size_t time_step{3};
     std::size_t max_trajectories{500};

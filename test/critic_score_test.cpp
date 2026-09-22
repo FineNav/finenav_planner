@@ -33,25 +33,21 @@ class TestMapView final : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float x, float, float) const override { return collide_when_x_negative ? x < 0.0f : collision; }
 
-    float getRadius() const override { return 0.2f; }
-
-    int getCost(const Position3D&) const override {
+    int getCost(float x, float y) const override {
         ++cost_queries;
+        last_cost_x = x;
+        last_cost_y = y;
         return cost;
     }
-
-    float costAtPose(float, float, float) const override { return static_cast<float>(cost); }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
 
     int cost{0};
     bool collision{false};
     bool collide_when_x_negative{false};
     mutable std::size_t cost_queries{0};
+    mutable float last_cost_x{0.0F};
+    mutable float last_cost_y{0.0F};
 };
 
 struct CriticTestData {
@@ -104,6 +100,22 @@ TEST(CriticScoreTest, DisabledCriticLeavesCostsUnchanged) {
 
     EXPECT_EQ(fixture.costs(0), 0.0f);
     EXPECT_EQ(fixture.costs(1), 0.0f);
+}
+
+TEST(CriticScoreTest, CostCriticQueriesPlanarMapCoordinates) {
+    finenav_mppi_controller::Params params;
+    CriticTestData fixture;
+    fixture.trajectories.x.setConstant(1.25F);
+    fixture.trajectories.y.setConstant(-0.5F);
+    TestMapView map_view;
+    CostCritic critic;
+    critic.initialize(params);
+
+    critic.score(fixture.data, map_view);
+
+    EXPECT_GT(map_view.cost_queries, 0U);
+    EXPECT_FLOAT_EQ(map_view.last_cost_x, 1.25F);
+    EXPECT_FLOAT_EQ(map_view.last_cost_y, -0.5F);
 }
 
 TEST(CriticScoreTest, ConstraintCriticPenalizesVelocityAboveLimit) {

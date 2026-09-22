@@ -19,22 +19,16 @@
   <depend>visualization_msgs</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2</depend>
-  <depend>tf2_eigen</depend>
-  <depend>tf2_ros</depend>
   <depend>std_msgs</depend>
   <depend>eigen</depend>
   <depend>eigen3_cmake_module</depend>
   <depend>libomp-dev</depend>
   <depend>benchmark</depend>
   <depend>angles</depend>
-  <depend>opencv4</depend>
 
-  <depend>finenav_util</depend>
   <depend>finenav_core</depend>
   <depend>finenav_visualizer</depend>
   <depend>generate_parameter_library</depend>
-  <depend>finenav_interfaces</depend>
-  <depend>finenav_collision_model</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

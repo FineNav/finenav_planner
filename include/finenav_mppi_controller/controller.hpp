@@ -127,8 +127,6 @@ class MPPIController {
         visualizer_enabled_ = params.visualize;
         visualizer_config_.frame_id = params.visualizer_frame_id;
         visualizer_config_.trajectory_topic = params.visualizer_trajectory_topic;
-        visualizer_config_.optimal_path_topic = params.visualizer_optimal_path_topic;
-        visualizer_config_.reference_path_topic = params.visualizer_reference_path_topic;
         visualizer_config_.trajectory_step = static_cast<std::size_t>(params.visualizer_trajectory_step);
         visualizer_config_.time_step = static_cast<std::size_t>(params.visualizer_time_step);
         visualizer_config_.max_trajectories = static_cast<std::size_t>(params.visualizer_max_trajectories);
@@ -279,15 +277,6 @@ class MPPIController {
 
   protected:
     /**
-    * @brief Visualize trajectories
-    * @param transformed_plan Transformed input plan
-    */
-    //    void visualize(
-    //        nav_msgs::msg::Path transformed_plan,
-    //        const builtin_interfaces::msg::Time & cmd_stamp,
-    //        double z_height);
-
-    /**
     * @brief Main method to compute velocities using the optimizer
     * @param robot_pose Robot pose
     * @param robot_speed Robot speed
@@ -316,19 +305,6 @@ class MPPIController {
         RCLCPP_INFO(logger_, "Control loop execution time: %ld [ms]", duration);
 #endif
 
-        //  	if (visualize_) {
-        //    	double z_height = 0.06;
-        //    	const std::string base_frame = map_view->getBaseFrameID();
-        //    	try {
-        //      	auto tfst = tf_buffer_->lookupTransform(
-        //        	map_view.getGlobalFrameID(), base_frame,  cmd.header.stamp);
-        //      		z_height = tfst.transform.translation.z;
-        //    	} catch (const tf2::TransformException & ex) {
-        //      	RCLCPP_WARN(logger_, "Failed to get transform %s -> %s: %s",
-        //                  map_view.getGlobalFrameID().c_str(), base_frame.c_str(), ex.what());
-        //    	}
-        //    	visualize(std::move(path_, cmd.header.stamp, z_height);
-        //  	}
         return result;
     }
 

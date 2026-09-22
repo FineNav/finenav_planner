@@ -28,17 +28,9 @@ class EmptyMapView : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.2F; }
-
-    int getCost(const Position3D&) const override { return 0; }
-
-    float costAtPose(float, float, float) const override { return 0.0F; }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
+    int getCost(float, float) const override { return 0; }
 };
 
 class ScoringMapView final : public EmptyMapView {

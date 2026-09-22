@@ -25,20 +25,12 @@ class TestMapView final : public IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.2f; }
-
-    int getCost(const Position3D&) const override {
+    int getCost(float, float) const override {
         ++cost_queries_;
         return 0;
     }
-
-    float costAtPose(float, float, float) const override { return 0.0f; }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
 
     std::size_t costQueries() const { return cost_queries_.load(); }
 
@@ -50,13 +42,9 @@ class ConcurrentMapView final : public IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.2f; }
-
-    int getCost(const Position3D&) const override {
+    int getCost(float, float) const override {
         const int active = active_cost_queries_.fetch_add(1) + 1;
         int observed = max_concurrent_cost_queries_.load();
         while (active > observed && !max_concurrent_cost_queries_.compare_exchange_weak(observed, active)) {}
@@ -64,12 +52,6 @@ class ConcurrentMapView final : public IMapView {
         active_cost_queries_.fetch_sub(1);
         return 0;
     }
-
-    float costAtPose(float x, float y, float) const override {
-        return static_cast<float>(getCost(Position3D{x, y, 0.0}));
-    }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
 
     int maxConcurrentCostQueries() const { return max_concurrent_cost_queries_.load(); }
 

@@ -142,10 +142,9 @@ void CostCritic::score(CriticData& data, const IMapView& map_view) {
         const auto& traj = data.trajectories;
 
         for (Eigen::Index j = 0; j < traj_len; ++j) {
-            // The costAtPose doesn't use orientation
-            // The footprintCostAtPose will always return "INSCRIBED" if footprint is over it
-            // So the center point has more information than the footprint
-            const float pose_cost = costAtPose(traj.x(i, j), traj.y(i, j), map_view);
+            // The center-point cost does not use orientation and retains the
+            // detailed cost value that a footprint collision check would mask.
+            const float pose_cost = static_cast<float>(map_view.getCost(traj.x(i, j), traj.y(i, j)));
             // In free space.
             if (pose_cost < 1.0f) {
                 continue;

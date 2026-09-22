@@ -43,26 +43,14 @@ class ScenarioMapView final : public nav2_mppi_controller::IMapView {
 
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
-    float getRadius() const override { return 0.25F; }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
-
-    int getCost(const Position3D& position) const override {
+    int getCost(float x, float y) const override {
         if (scenario_ == Scenario::Open) {
             return 0;
         }
 
-        const float x = static_cast<float>(position.x());
-        const float y = static_cast<float>(position.y());
         const float variation = std::abs(std::sin(1.7F * x)) * 90.0F;
         const float lateral = std::min(std::abs(y) * 180.0F, 120.0F);
         return static_cast<int>(std::clamp(20.0F + variation + lateral, 1.0F, 220.0F));
-    }
-
-    float costAtPose(float x, float y, float) const override {
-        return static_cast<float>(getCost(Position3D{static_cast<double>(x), static_cast<double>(y), 0.0}));
     }
 
     bool isCollision(float x, float y, float) const override {

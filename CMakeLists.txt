@@ -19,16 +19,10 @@ set(dependencies_pkgs
   nav_msgs
   std_msgs
   tf2_geometry_msgs
-  tf2_eigen
-  tf2_ros
   angles
-  OpenCV
-        finenav_collision_model
-        finenav_util
-        finenav_core
-        finenav_visualizer
-        generate_parameter_library
-        finenav_interfaces
+  finenav_core
+  finenav_visualizer
+  generate_parameter_library
 )
 
 foreach(pkg IN LISTS dependencies_pkgs)
@@ -126,22 +120,6 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-
-
-
-
-find_package(pcl_conversions REQUIRED)
-find_package(pcl_msgs REQUIRED)
-find_package(PCL REQUIRED COMPONENTS common filters)
-
-
-set(test_dependencies
-        ${dependencies_pkgs}
-        pcl_conversions
-        pcl_msgs
-)
-
-
 
 
 

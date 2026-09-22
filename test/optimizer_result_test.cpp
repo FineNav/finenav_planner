@@ -21,17 +21,9 @@ class TestMapView : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return false; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.0f; }
-
-    int getCost(const Position3D&) const override { return 0; }
-
-    float costAtPose(float, float, float) const override { return 0.0f; }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
+    int getCost(float, float) const override { return 0; }
 };
 
 class TrackingCritic : public critics::CriticFunction {

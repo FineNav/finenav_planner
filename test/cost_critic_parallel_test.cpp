@@ -29,18 +29,13 @@ class DeterministicMapView final : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return true; }
-
     bool isCollision(float x, float, float) const override { return x < -0.5f; }
 
-    float getRadius() const override { return 0.2f; }
-
-    int getCost(const Position3D& position) const override {
+    int getCost(float x, float) const override {
         const int query = query_count.fetch_add(1, std::memory_order_relaxed);
         if (throw_after >= 0 && query >= throw_after) {
             throw std::runtime_error("deterministic map failure");
         }
-        const double x = position.x();
         if (x < -0.5) {
             return 254;
         }
@@ -53,12 +48,6 @@ class DeterministicMapView final : public nav2_mppi_controller::IMapView {
         return 200;
     }
 
-    float costAtPose(float x, float y, float) const override {
-        return static_cast<float>(getCost(Position3D{x, y, 0.0}));
-    }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
-
     mutable std::atomic<int> query_count{0};
     int throw_after{-1};
 };
@@ -67,13 +56,9 @@ class ConcurrentAccessMapView final : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return true; }
-
     bool isCollision(float, float, float) const override { return false; }
 
-    float getRadius() const override { return 0.2F; }
-
-    int getCost(const Position3D&) const override {
+    int getCost(float, float) const override {
         const int current = active_calls_.fetch_add(1, std::memory_order_relaxed) + 1;
         int observed = max_active_calls_.load(std::memory_order_relaxed);
         while (current > observed &&
@@ -82,12 +67,6 @@ class ConcurrentAccessMapView final : public nav2_mppi_controller::IMapView {
         active_calls_.fetch_sub(1, std::memory_order_relaxed);
         return 80;
     }
-
-    float costAtPose(float x, float y, float) const override {
-        return static_cast<float>(getCost(Position3D{x, y, 0.0}));
-    }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
 
     int maxActiveCalls() const { return max_active_calls_.load(std::memory_order_relaxed); }
 
@@ -104,12 +83,8 @@ class CountingWorkloadMapView final : public nav2_mppi_controller::IMapView {
 
     bool isTrackingUnknown() const override { return false; }
 
-    bool considerFootprint() const override { return true; }
-
-    float getRadius() const override { return 0.2F; }
-
-    int getCost(const Position3D& position) const override {
-        const std::size_t trajectory = trajectoryIndex(position.x());
+    int getCost(float x, float) const override {
+        const std::size_t trajectory = trajectoryIndex(x);
         if (trajectory >= max_trajectories) {
             return 0;
         }
@@ -134,12 +109,6 @@ class CountingWorkloadMapView final : public nav2_mppi_controller::IMapView {
         }
         return false;
     }
-
-    float costAtPose(float x, float y, float) const override {
-        return static_cast<float>(getCost(Position3D{x, y, 0.0}));
-    }
-
-    std::string getBaseFrameID() const override { return "base_link"; }
 
     void reset() const {
         active_calls_.store(0, std::memory_order_relaxed);

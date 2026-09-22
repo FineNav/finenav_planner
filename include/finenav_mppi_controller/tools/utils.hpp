@@ -275,9 +275,7 @@ inline void findPathCosts(CriticData& data, const MapView& map_view) {
         //      continue;
         //    }
 
-        switch (map_view.getCost(Position3D{
-            static_cast<double>(path_x),  //根据finenav—engine的要求，坐标均为全局坐标，即fixed frame坐标系下的坐标
-            static_cast<double>(path_y), 0.0})) {
+        switch (map_view.getCost(path_x, path_y)) {
             // 使用具体数值替代 nav2_costmap_2d 宏常量：
             // NO_INFORMATION = 255, LETHAL_OBSTACLE = 254, INSCRIBED_INFLATED_OBSTACLE = 253
             case 254:  // LETHAL_OBSTACLE

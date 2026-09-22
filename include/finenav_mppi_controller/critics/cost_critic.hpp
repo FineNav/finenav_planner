@@ -81,17 +81,6 @@ class CostCritic : public CriticFunction {
         return map_view.isCollision(x, y, theta);
     }
 
-    /**
-    * @brief cost at a robot pose
-    * @param x X of pose
-    * @param y Y of pose
-    * @return Collision information at pose
-    */
-    float costAtPose(float x, float y, const nav2_mppi_controller::IMapView& map_view) const {
-        // 使用 Position3D 作为参数传入 map_view
-        return map_view.getCost(Position3D{static_cast<double>(x), static_cast<double>(y), 0.0});
-    }
-
   protected:
     //  bool consider_footprint_{true};
     float collision_cost_{0};

@@ -69,8 +69,6 @@ class TrajectoryVisualizerTest : public ::testing::Test {
         mppi::VisualizerConfig config;
         config.frame_id = "map";
         config.trajectory_topic = "/mppi_visualizer_test/trajectories_";
-        config.optimal_path_topic = "/mppi_visualizer_test/optimal_";
-        config.reference_path_topic = "/mppi_visualizer_test/reference_";
         config.trajectory_step = 2;
         config.time_step = 2;
         config.max_trajectories = 100;
