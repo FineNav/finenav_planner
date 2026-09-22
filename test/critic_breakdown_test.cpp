@@ -24,7 +24,7 @@ static_assert(
     std::is_same_v<typename decltype(mppi::CriticCostBreakdown::contributions)::value_type, std::vector<float>>,
     "Diagnostic critic contributions must use STL-owned float storage");
 
-class EmptyMapView final : public nav2_mppi_controller::IMapView {
+class EmptyMapView : public nav2_mppi_controller::IMapView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -39,6 +39,15 @@ class EmptyMapView final : public nav2_mppi_controller::IMapView {
     float costAtPose(float, float, float) const override { return 0.0F; }
 
     std::string getBaseFrameID() const override { return "base_link"; }
+};
+
+class ScoringMapView final : public EmptyMapView {
+  public:
+    bool score(mppi::CriticData& data) const override {
+        data.costs(0) += 3.0F;
+        data.costs(1) += 0.5F;
+        return true;
+    }
 };
 
 class AddCritic final : public mppi::critics::CriticFunction {
@@ -115,6 +124,58 @@ TEST(CriticBreakdownTest, NullBreakdownPreservesScoringPath) {
 
     EXPECT_FLOAT_EQ(data.costs(0), 1.0F);
     EXPECT_FLOAT_EQ(data.costs(1), 1.0F);
+}
+
+TEST(CriticBreakdownTest, DefaultMapViewLeavesCostsAndBreakdownUnchanged) {
+    mppi::models::State state;
+    mppi::models::Trajectories trajectories;
+    mppi::models::Path path;
+    mppi::models::Vector costs = mppi::models::Vector::Zero(2);
+    float model_dt = 0.05F;
+    mppi::CriticCostBreakdown breakdown;
+    mppi::CriticData data{state, trajectories, path,         costs,        model_dt,
+                          false, nullptr,      std::nullopt, std::nullopt, &breakdown};
+
+    std::vector<std::unique_ptr<mppi::critics::CriticFunction>> critics;
+    finenav_mppi_controller::Params params;
+    mppi::CriticManager manager;
+    manager.on_configure(critics, params);
+    EmptyMapView map_view;
+
+    manager.evalTrajectoriesScores(data, map_view);
+
+    EXPECT_FLOAT_EQ(data.costs(0), 0.0F);
+    EXPECT_FLOAT_EQ(data.costs(1), 0.0F);
+    EXPECT_FALSE(breakdown.valid);
+    EXPECT_TRUE(breakdown.names.empty());
+}
+
+TEST(CriticBreakdownTest, CapturesWorldViewScoreDelta) {
+    mppi::models::State state;
+    mppi::models::Trajectories trajectories;
+    mppi::models::Path path;
+    mppi::models::Vector costs = mppi::models::Vector::Zero(2);
+    float model_dt = 0.05F;
+    mppi::CriticCostBreakdown breakdown;
+    mppi::CriticData data{state, trajectories, path,         costs,        model_dt,
+                          false, nullptr,      std::nullopt, std::nullopt, &breakdown};
+
+    std::vector<std::unique_ptr<mppi::critics::CriticFunction>> critics;
+    finenav_mppi_controller::Params params;
+    mppi::CriticManager manager;
+    manager.on_configure(critics, params);
+    ScoringMapView map_view;
+
+    manager.evalTrajectoriesScores(data, map_view);
+
+    ASSERT_TRUE(breakdown.valid);
+    ASSERT_EQ(breakdown.names.size(), 1U);
+    ASSERT_EQ(breakdown.contributions.size(), 1U);
+    EXPECT_EQ(breakdown.names.front(), "WorldViewScore");
+    EXPECT_FLOAT_EQ(breakdown.contributions.front()[0], 3.0F);
+    EXPECT_FLOAT_EQ(breakdown.contributions.front()[1], 0.5F);
+    EXPECT_FLOAT_EQ(data.costs(0), 3.0F);
+    EXPECT_FLOAT_EQ(data.costs(1), 0.5F);
 }
 
 }  // namespace

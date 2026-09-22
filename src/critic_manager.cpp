@@ -95,6 +95,26 @@ void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map
         data.critic_cost_breakdown->clear();
     }
 
+    const auto recordContribution = [&data](const char* name, const models::Vector& costs_before) {
+        if (!data.critic_cost_breakdown || costs_before.size() != data.costs.size()) {
+            return;
+        }
+        CriticCostBreakdown::Contribution contribution(static_cast<std::size_t>(data.costs.size()), 0.0F);
+        for (Eigen::Index i = 0; i < data.costs.size(); ++i) {
+            const float before = costs_before(i);
+            const float after = data.costs(i);
+            if (isFiniteFloat(before) && isFiniteFloat(after)) {
+                const float delta = after - before;
+                contribution[static_cast<std::size_t>(i)] =
+                    isFiniteFloat(delta) ? std::max(delta, 0.0F) : std::numeric_limits<float>::infinity();
+            } else if (isFiniteFloat(before) && !isFiniteFloat(after)) {
+                contribution[static_cast<std::size_t>(i)] = std::numeric_limits<float>::infinity();
+            }
+        }
+        data.critic_cost_breakdown->names.emplace_back(name);
+        data.critic_cost_breakdown->contributions.push_back(std::move(contribution));
+    };
+
     for (size_t q = 0; q < critics_.size(); q++) {
         if (data.fail_flag) {
             break;
@@ -105,25 +125,16 @@ void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map
             costs_before = data.costs;
         }
         critics_[q]->score(data, map_view);
+        recordContribution(criticName(*critics_[q]), costs_before);
+    }
 
+    if (!data.fail_flag) {
+        models::Vector costs_before;
         if (data.critic_cost_breakdown) {
-            if (costs_before.size() != data.costs.size()) {
-                continue;
-            }
-            CriticCostBreakdown::Contribution contribution(static_cast<std::size_t>(data.costs.size()), 0.0F);
-            for (Eigen::Index i = 0; i < data.costs.size(); ++i) {
-                const float before = costs_before(i);
-                const float after = data.costs(i);
-                if (isFiniteFloat(before) && isFiniteFloat(after)) {
-                    const float delta = after - before;
-                    contribution[static_cast<std::size_t>(i)] =
-                        isFiniteFloat(delta) ? std::max(delta, 0.0F) : std::numeric_limits<float>::infinity();
-                } else if (isFiniteFloat(before) && !isFiniteFloat(after)) {
-                    contribution[static_cast<std::size_t>(i)] = std::numeric_limits<float>::infinity();
-                }
-            }
-            data.critic_cost_breakdown->names.emplace_back(criticName(*critics_[q]));
-            data.critic_cost_breakdown->contributions.push_back(std::move(contribution));
+            costs_before = data.costs;
+        }
+        if (map_view.score(data)) {
+            recordContribution("WorldViewScore", costs_before);
         }
     }
 

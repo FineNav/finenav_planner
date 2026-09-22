@@ -10,6 +10,8 @@
 
 #include <Eigen/Core>
 
+#include "finenav_mppi_controller/critic_data.hpp"
+
 using Position3D = Eigen::Vector3d;
 
 namespace nav2_mppi_controller {
@@ -40,6 +42,9 @@ class IMapView {
     virtual float costAtPose(float x, float y, float theta) const = 0;
 
     virtual std::string getBaseFrameID() const = 0;
+
+    // Optional batch score supplied by a WorldView; return true when costs were changed.
+    virtual bool score(mppi::CriticData&) const { return false; }
 };
 }  // namespace nav2_mppi_controller
 
