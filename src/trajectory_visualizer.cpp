@@ -259,13 +259,8 @@ void LatestFrameChannel::restart() {
 }
 
 TrajectoryVisualizer::~TrajectoryVisualizer() {
-    // FineNavVisualizer is injected as a non-owning pointer. During framework
-    // teardown it may be released before the planner instance, so destruction
-    // must stop the worker without publishing through that pointer.
     std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     stopWorker();
-    std::lock_guard<std::mutex> lock(mutex_);
-    visualizer_ = nullptr;
 }
 
 void TrajectoryVisualizer::stopWorker() {
@@ -275,7 +270,19 @@ void TrajectoryVisualizer::stopWorker() {
     }
 }
 
-void TrajectoryVisualizer::configure(finenav::viz::FineNavVisualizer& visualizer, const VisualizerConfig& config) {
+void TrajectoryVisualizer::setVisualizer(const finenav::viz::FineNavVisualizer& visualizer) {
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+    stopWorker();
+    std::lock_guard<std::mutex> lock(mutex_);
+    visualizer_ = visualizer;
+}
+
+bool TrajectoryVisualizer::hasVisualizer() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return static_cast<bool>(visualizer_);
+}
+
+void TrajectoryVisualizer::configure(const VisualizerConfig& config) {
     if (config.trajectory_step == 0 || config.time_step == 0) {
         throw std::invalid_argument("TrajectoryVisualizer sampling steps must be greater than zero");
     }
@@ -287,9 +294,13 @@ void TrajectoryVisualizer::configure(finenav::viz::FineNavVisualizer& visualizer
     std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     stopWorker();
 
+    finenav::viz::FineNavVisualizer visualizer;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        visualizer_ = &visualizer;
+        if (!visualizer_) {
+            throw std::logic_error("TrajectoryVisualizer requires an injected FineNavVisualizer");
+        }
+        visualizer = visualizer_;
         config_ = config;
     }
     visualizer.markers().setBaseFrame(config.frame_id);
@@ -324,8 +335,6 @@ void TrajectoryVisualizer::reset() {
     if (rclcpp::ok()) {
         publishClear();
     }
-    std::lock_guard<std::mutex> lock(mutex_);
-    visualizer_ = nullptr;
 }
 
 void TrajectoryVisualizer::run() {
@@ -362,7 +371,7 @@ void TrajectoryVisualizer::run() {
 }
 
 void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
-    finenav::viz::FineNavVisualizer* visualizer = nullptr;
+    finenav::viz::FineNavVisualizer visualizer;
     VisualizerConfig config;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -373,7 +382,7 @@ void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
         return;
     }
 
-    auto& markers = visualizer->markers();
+    auto& markers = visualizer.markers();
     markers.deleteAllMarkers(config.trajectory_topic);
 
     for (const auto& marker : frame.trajectories.markers) {
@@ -407,7 +416,7 @@ void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
 }
 
 void TrajectoryVisualizer::publishClear() {
-    finenav::viz::FineNavVisualizer* visualizer = nullptr;
+    finenav::viz::FineNavVisualizer visualizer;
     VisualizerConfig config;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -417,7 +426,7 @@ void TrajectoryVisualizer::publishClear() {
     if (!visualizer) {
         return;
     }
-    visualizer->markers().deleteAllMarkers(config.trajectory_topic);
+    visualizer.markers().deleteAllMarkers(config.trajectory_topic);
 }
 
 visualization_msgs::msg::MarkerArray TrajectoryVisualizer::buildTrajectoryMarkers(

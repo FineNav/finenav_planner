@@ -36,6 +36,19 @@ void expectLoggerName(const finenav_mppi_controller::Params& params, const std::
     EXPECT_EQ(critic.loggerName(), expected_name);
 }
 
+template <typename CriticT>
+class ThresholdTestCritic : public CriticT {
+  public:
+    float thresholdToConsider() const { return this->threshold_to_consider_; }
+};
+
+template <typename CriticT>
+void expectSharedThreshold(const finenav_mppi_controller::Params& params, float expected_threshold) {
+    ThresholdTestCritic<CriticT> critic;
+    critic.initialize(params);
+    EXPECT_FLOAT_EQ(critic.thresholdToConsider(), expected_threshold);
+}
+
 TEST(CriticFunctionTest, InitializeAssignsClassSpecificLogger) {
     finenav_mppi_controller::Params params;
 
@@ -49,6 +62,18 @@ TEST(CriticFunctionTest, InitializeAssignsClassSpecificLogger) {
     expectLoggerName<PreferForwardCritic>(params, "PreferForwardCritic");
     expectLoggerName<TwirlingCritic>(params, "TwirlingCritic");
     expectLoggerName<VelocityDeadbandCritic>(params, "VelocityDeadbandCritic");
+}
+
+TEST(CriticFunctionTest, GoalAndPathCriticsUseSharedTopLevelThreshold) {
+    finenav_mppi_controller::Params params;
+    params.threshold_to_consider = 0.75;
+
+    expectSharedThreshold<GoalCritic>(params, 0.75F);
+    expectSharedThreshold<GoalAngleCritic>(params, 0.75F);
+    expectSharedThreshold<PreferForwardCritic>(params, 0.75F);
+    expectSharedThreshold<PathAlignCritic>(params, 0.75F);
+    expectSharedThreshold<PathFollowCritic>(params, 0.75F);
+    expectSharedThreshold<PathAngleCritic>(params, 0.75F);
 }
 
 }  // namespace

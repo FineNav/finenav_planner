@@ -55,7 +55,8 @@ class TrajectoryVisualizerTest : public ::testing::Test {
         config_ = makeConfig();
         const auto suffix = std::to_string(next_topic_id_.fetch_add(1));
         config_.trajectory_topic += suffix;
-        visualizer_.configure(*framework_visualizer_, config_);
+        visualizer_.setVisualizer(*framework_visualizer_);
+        visualizer_.configure(config_);
     }
 
     void TearDown() override {
@@ -130,6 +131,13 @@ class TrajectoryVisualizerTest : public ::testing::Test {
     inline static std::atomic<std::uint64_t> next_topic_id_{0};
 };
 
+TEST(TrajectoryVisualizerLifecycleTest, ConfigureRequiresInjectedBackend) {
+    mppi::TrajectoryVisualizer visualizer;
+    mppi::VisualizerConfig config;
+
+    EXPECT_THROW(visualizer.configure(config), std::logic_error);
+}
+
 TEST_F(TrajectoryVisualizerTest, CandidateMarkersStartWithDeleteAllAndDownsample) {
     const auto captured =
         capture(makeCandidates(), makeBreakdown(), mppi::models::BatchArray::Ones(3, 3), nav_msgs::msg::Path{});
@@ -149,7 +157,7 @@ TEST_F(TrajectoryVisualizerTest, CandidateMarkersStartWithDeleteAllAndDownsample
 TEST_F(TrajectoryVisualizerTest, CandidateMarkersRespectMaximumCount) {
     config_.max_trajectories = 2;
     visualizer_.reset();
-    visualizer_.configure(*framework_visualizer_, config_);
+    visualizer_.configure(config_);
     const auto captured =
         capture(makeCandidates(), makeBreakdown(), mppi::models::BatchArray::Ones(3, 3), nav_msgs::msg::Path{});
 
@@ -157,6 +165,21 @@ TEST_F(TrajectoryVisualizerTest, CandidateMarkersRespectMaximumCount) {
     EXPECT_EQ(captured.markers->markers[0].ns, "candidate_trajectories");
     EXPECT_EQ(captured.markers->markers[1].ns, "candidate_trajectories");
     EXPECT_EQ(captured.markers->markers.back().ns, "optimal_trajectory");
+}
+
+TEST_F(TrajectoryVisualizerTest, KeepsInjectedBackendAfterSourceHandleIsDestroyed) {
+    visualizer_.reset();
+    {
+        finenav::viz::FineNavVisualizer source(node_);
+        visualizer_.setVisualizer(source);
+    }
+
+    visualizer_.configure(config_);
+
+    const auto captured =
+        capture(makeCandidates(), makeBreakdown(), mppi::models::BatchArray::Ones(3, 3), nav_msgs::msg::Path{});
+
+    EXPECT_NE(findMarker(*captured.markers, "optimal_trajectory"), nullptr);
 }
 
 TEST_F(TrajectoryVisualizerTest, SubmitBuildsImmutableFrameBeforeSourceMutation) {

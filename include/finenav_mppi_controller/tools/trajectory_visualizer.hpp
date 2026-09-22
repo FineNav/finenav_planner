@@ -108,7 +108,11 @@ class TrajectoryVisualizer {
   public:
     ~TrajectoryVisualizer();
 
-    void configure(finenav::viz::FineNavVisualizer& visualizer, const VisualizerConfig& config);
+    void setVisualizer(const finenav::viz::FineNavVisualizer& visualizer);
+
+    bool hasVisualizer() const;
+
+    void configure(const VisualizerConfig& config);
 
     void submit(const models::Trajectories& candidates, const CriticCostBreakdown& critic_breakdown,
                 const models::BatchArray& optimal, const nav_msgs::msg::Path& reference_path, std::uint64_t generation);
@@ -140,7 +144,7 @@ class TrajectoryVisualizer {
     static visualization_msgs::msg::Marker buildOptimalMarker(const models::BatchArray& optimal,
                                                               const VisualizerConfig& config);
 
-    finenav::viz::FineNavVisualizer* visualizer_{nullptr};
+    finenav::viz::FineNavVisualizer visualizer_{};
     VisualizerConfig config_;
     mutable std::mutex mutex_;
     std::mutex lifecycle_mutex_;

@@ -111,6 +111,21 @@ inline models::Path toTensor(const nav_msgs::msg::Path& path) {
 }
 
 /**
+ * @brief Calculate the two-dimensional length of a path
+ * @param path Path whose consecutive segments will be measured
+ * @return Sum of Euclidean segment lengths
+ */
+inline double calculatePathLength(const nav_msgs::msg::Path& path) {
+    double length = 0.0;
+    for (std::size_t index = 1; index < path.poses.size(); ++index) {
+        const auto& previous = path.poses[index - 1].pose.position;
+        const auto& current = path.poses[index].pose.position;
+        length += std::hypot(current.x - previous.x, current.y - previous.y);
+    }
+    return length;
+}
+
+/**
  * @brief Check if the robot pose is within tolerance to the goal
  * @param pose_tolerance Pose tolerance to use
  * @param robot Pose of robot

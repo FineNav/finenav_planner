@@ -190,10 +190,12 @@ TEST(ControllerPlanTest, VisualizedPlanResetStressWithPracticalDimensions) {
 
     {
         auto visualizer_node = std::make_shared<rclcpp::Node>("controller_plan_visualizer_test_node");
-        finenav::viz::FineNavVisualizer framework_visualizer(visualizer_node);
         MPPIController controller;
         controller.configure(params);
-        controller.setVisualizer(framework_visualizer);
+        {
+            finenav::viz::FineNavVisualizer framework_visualizer(visualizer_node);
+            controller.setVisualizer(framework_visualizer);
+        }
         TestMapView map_view;
 
         for (int episode = 0; episode < 5; ++episode) {

@@ -41,7 +41,7 @@ void PathAlignCritic::initialize(const finenav_mppi_controller::Params& p) {
     max_path_occupancy_ratio_ = static_cast<float>(c.max_path_occupancy_ratio);
     offset_from_furthest_ = static_cast<size_t>(c.offset_from_furthest);
     trajectory_point_step_ = c.trajectory_point_step;
-    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+    threshold_to_consider_ = static_cast<float>(p.threshold_to_consider);
     use_path_orientations_ = c.use_path_orientations;
 }
 
@@ -52,8 +52,8 @@ void PathAlignCritic::score(CriticData& data, const IMapView& map_view) {
         return;
     }
 
-    // Don't apply when near the goal
-    if (utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+    // Don't apply when the local path is short; let the goal critics take over
+    if (data.state.local_path_length < threshold_to_consider_) {
         return;
     }
 

@@ -38,7 +38,7 @@ void GoalCritic::initialize(const finenav_mppi_controller::Params& p) {
     enabled_ = c.enabled;
     power_ = static_cast<unsigned int>(c.cost_power);
     weight_ = static_cast<float>(c.cost_weight);
-    threshold_to_consider_ = static_cast<float>(c.threshold_to_consider);
+    threshold_to_consider_ = static_cast<float>(p.threshold_to_consider);
 }
 
 void GoalCritic::score(CriticData& data, const IMapView& map_view) {
@@ -46,8 +46,8 @@ void GoalCritic::score(CriticData& data, const IMapView& map_view) {
         return;
     }
 
-    // Only activate when robot is near the goal
-    if (!utils::withinPositionGoalTolerance(threshold_to_consider_, data.state.pose.pose, data.path)) {
+    // Only activate when the local path is short enough for final goal approach
+    if (data.state.local_path_length > threshold_to_consider_) {
         return;
     }
 

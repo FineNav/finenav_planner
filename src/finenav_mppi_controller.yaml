@@ -155,6 +155,12 @@ finenav_mppi_controller:
     validation:
       gt<>: [0.0]
 
+  # ── Shared critic settings ──
+  threshold_to_consider:
+    type: double
+    default_value: 0.5
+    description: "Shared local-path-length threshold for switching between goal and path critics (m)"
+
   # ── Critics ────────────────────────────────────────────────────────────────
   ConstraintCritic:
     enabled:
@@ -183,10 +189,6 @@ finenav_mppi_controller:
       type: double
       default_value: 5.0
       description: "Weight for goal attraction cost"
-    threshold_to_consider:
-      type: double
-      default_value: 1.4
-      description: "Distance from goal at which critic activates (m)"
 
   GoalAngleCritic:
     enabled:
@@ -201,10 +203,6 @@ finenav_mppi_controller:
       type: double
       default_value: 3.0
       description: "Weight for goal heading alignment cost"
-    threshold_to_consider:
-      type: double
-      default_value: 0.5
-      description: "Distance from goal at which critic activates (m)"
 
   PreferForwardCritic:
     enabled:
@@ -219,10 +217,6 @@ finenav_mppi_controller:
       type: double
       default_value: 5.0
       description: "Weight for preferring forward motion"
-    threshold_to_consider:
-      type: double
-      default_value: 0.5
-      description: "Distance threshold to activate this critic (m)"
 
   CostCritic:
     num_threads:
@@ -289,10 +283,6 @@ finenav_mppi_controller:
       description: "Step size between trajectory points evaluated for alignment"
       validation:
         gt<>: [0]
-    threshold_to_consider:
-      type: double
-      default_value: 0.5
-      description: "Distance to goal below which critic deactivates (m)"
     offset_from_furthest:
       type: int
       default_value: 20
@@ -319,10 +309,6 @@ finenav_mppi_controller:
       type: int
       default_value: 6
       description: "Offset from furthest reachable path point for follow target"
-    threshold_to_consider:
-      type: double
-      default_value: 1.4
-      description: "Distance to goal below which critic deactivates (m)"
 
   PathAngleCritic:
     enabled:
@@ -341,10 +327,6 @@ finenav_mppi_controller:
       type: int
       default_value: 4
       description: "Offset from furthest reachable path point"
-    threshold_to_consider:
-      type: double
-      default_value: 0.5
-      description: "Distance to goal below which critic deactivates (m)"
     max_angle_to_furthest:
       type: double
       default_value: 1.0

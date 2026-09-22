@@ -58,5 +58,16 @@ TEST(UtilsTest, FindClosestPathPointPreservesNonzeroSearchStart) {
     EXPECT_EQ(findClosestPathPt(integrated_distances, 1.9F, 2U), 2U);
 }
 
+TEST(UtilsTest, CalculatePathLengthAddsAllPlanSegments) {
+    nav_msgs::msg::Path path;
+    path.poses.resize(3);
+    path.poses[1].pose.position.x = 3.0;
+    path.poses[1].pose.position.y = 4.0;
+    path.poses[2].pose.position.x = 3.0;
+    path.poses[2].pose.position.y = 8.0;
+
+    EXPECT_DOUBLE_EQ(calculatePathLength(path), 9.0);
+}
+
 }  // namespace
 }  // namespace mppi::utils

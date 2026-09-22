@@ -266,6 +266,13 @@ class TestOptimizer : public Optimizer {
 
     const models::State& candidateState() const { return state_; }
 
+    float prepareAndGetLocalPathLength(const nav_msgs::msg::Path& plan) {
+        geometry_msgs::msg::PoseStamped pose;
+        geometry_msgs::msg::Twist speed;
+        prepare(pose, speed, plan);
+        return state_.local_path_length;
+    }
+
     models::ControlConstraints constraints() const { return settings_.constraints; }
 
     void resetOptimizer() { reset(); }
@@ -292,6 +299,20 @@ TEST(OptimizerResultTest, ReturnsCurrentResultAndShiftsWarmStart) {
     EXPECT_FLOAT_EQ(warm_start.vx(0), 2.0f);
     EXPECT_FLOAT_EQ(warm_start.vx(1), 3.0f);
     EXPECT_FLOAT_EQ(warm_start.vx(2), 3.0f);
+}
+
+TEST(OptimizerResultTest, PrepareCalculatesLocalPathLengthAlongAllSegments) {
+    nav_msgs::msg::Path path;
+    path.poses.resize(3);
+    path.poses[1].pose.position.x = 3.0;
+    path.poses[1].pose.position.y = 4.0;
+    path.poses[2].pose.position.x = 3.0;
+    path.poses[2].pose.position.y = 8.0;
+    TestOptimizer optimizer;
+
+    const float length = optimizer.prepareAndGetLocalPathLength(path);
+
+    EXPECT_FLOAT_EQ(length, 9.0F);
 }
 
 TEST(OptimizerResultTest, CandidatePropagationUsesMotionModelPredict) {

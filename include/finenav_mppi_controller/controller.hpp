@@ -70,10 +70,10 @@ class MPPIController {
 
     void setLogger(const rclcpp::Logger& logger) { logger_ = logger; }
 
-    void setVisualizer(finenav::viz::FineNavVisualizer& visualizer) {
-        framework_visualizer_ = &visualizer;
+    void setVisualizer(const finenav::viz::FineNavVisualizer& visualizer) {
+        visualizer_.setVisualizer(visualizer);
         if (configured_ && visualizer_enabled_) {
-            visualizer_.configure(*framework_visualizer_, visualizer_config_);
+            visualizer_.configure(visualizer_config_);
         }
     }
 
@@ -133,10 +133,8 @@ class MPPIController {
         visualizer_config_.time_step = static_cast<std::size_t>(params.visualizer_time_step);
         visualizer_config_.max_trajectories = static_cast<std::size_t>(params.visualizer_max_trajectories);
         visualizer_config_.publish_rate = params.visualizer_publish_rate;
-        if (params.visualize) {
-            if (framework_visualizer_) {
-                visualizer_.configure(*framework_visualizer_, visualizer_config_);
-            }
+        if (params.visualize && visualizer_.hasVisualizer()) {
+            visualizer_.configure(visualizer_config_);
         } else {
             visualization_generation_.fetch_add(1, std::memory_order_relaxed);
             visualizer_.reset();
@@ -337,7 +335,6 @@ class MPPIController {
     nav_msgs::msg::Path path_;
 
     rclcpp::Logger logger_{rclcpp::get_logger("MPPIController")};
-    finenav::viz::FineNavVisualizer* framework_visualizer_{nullptr};
     TrajectoryVisualizer visualizer_;
     bool visualizer_enabled_{false};
     bool configured_{false};

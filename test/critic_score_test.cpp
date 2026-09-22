@@ -154,11 +154,28 @@ TEST(CriticScoreTest, ConstraintCriticKeepsStationaryAckermannCostFinite) {
     }
 }
 
-TEST(CriticScoreTest, PreferForwardCriticPenalizesReverseMotionNearGoal) {
+TEST(CriticScoreTest, PreferForwardCriticSkipsReverseMotionBelowPathLengthThreshold) {
     finenav_mppi_controller::Params params;
+    params.threshold_to_consider = 0.5;
     CriticTestData fixture;
-    fixture.state.pose.pose.position.x = 0.9;
+    fixture.state.local_path_length = 0.49F;
     fixture.state.vx.fill(-0.2f);
+    TestMapView map_view;
+    PreferForwardCritic critic;
+    critic.initialize(params);
+
+    critic.score(fixture.data, map_view);
+
+    EXPECT_EQ(fixture.costs(0), 0.0F);
+    EXPECT_EQ(fixture.costs(1), 0.0F);
+}
+
+TEST(CriticScoreTest, PreferForwardCriticPenalizesReverseMotionAtPathLengthThreshold) {
+    finenav_mppi_controller::Params params;
+    params.threshold_to_consider = 0.5;
+    CriticTestData fixture;
+    fixture.state.local_path_length = 0.5F;
+    fixture.state.vx.fill(-0.2F);
     TestMapView map_view;
     PreferForwardCritic critic;
     critic.initialize(params);
@@ -227,7 +244,7 @@ TEST(CriticScoreTest, VelocityDeadbandCriticUsesLinearCostAtPowerOne) {
     expectPositiveCosts(fixture);
 }
 
-TEST(CriticScoreTest, GoalCriticsScoreNearGoalAndSkipFarGoal) {
+TEST(CriticScoreTest, GoalCriticsUseLocalPathLengthToSwitch) {
     finenav_mppi_controller::Params params;
     TestMapView map_view;
     GoalCritic goal_critic;
@@ -236,7 +253,8 @@ TEST(CriticScoreTest, GoalCriticsScoreNearGoalAndSkipFarGoal) {
     goal_angle_critic.initialize(params);
 
     CriticTestData near_goal;
-    near_goal.state.pose.pose.position.x = 0.9;
+    near_goal.state.pose.pose.position.x = -2.0;
+    near_goal.state.local_path_length = 0.5F;
     near_goal.trajectories.yaws.fill(static_cast<float>(M_PI_2));
     goal_critic.score(near_goal.data, map_view);
     goal_angle_critic.score(near_goal.data, map_view);
@@ -244,7 +262,8 @@ TEST(CriticScoreTest, GoalCriticsScoreNearGoalAndSkipFarGoal) {
     expectPositiveCosts(near_goal);
 
     CriticTestData far_goal;
-    far_goal.state.pose.pose.position.x = -2.0;
+    far_goal.state.pose.pose.position.x = 0.9;
+    far_goal.state.local_path_length = 0.51F;
     far_goal.trajectories.yaws.fill(static_cast<float>(M_PI_2));
     goal_critic.score(far_goal.data, map_view);
     goal_angle_critic.score(far_goal.data, map_view);
@@ -257,7 +276,8 @@ TEST(CriticScoreTest, PathFollowCriticScoresEndpointDistance) {
     finenav_mppi_controller::Params params;
     params.PathFollowCritic.offset_from_furthest = 1;
     CriticTestData fixture;
-    fixture.state.pose.pose.position.x = -1.0;
+    fixture.state.pose.pose.position.x = 0.9;
+    fixture.state.local_path_length = 0.5F;
     fixture.setAllPathPointsValid();
     fixture.data.furthest_reached_path_point = 1;
     fixture.setAllTrajectoryY(0.3f);
@@ -276,6 +296,8 @@ TEST(CriticScoreTest, PathAngleCriticScoresHeadingError) {
     params.PathAngleCritic.offset_from_furthest = 1;
     params.PathAngleCritic.max_angle_to_furthest = 0.1;
     CriticTestData fixture;
+    fixture.state.pose.pose.position.x = 0.9;
+    fixture.state.local_path_length = 0.5F;
     fixture.path.y(2) = 1.0f;
     fixture.data.furthest_reached_path_point = 1;
     TestMapView map_view;
@@ -292,7 +314,8 @@ TEST(CriticScoreTest, PathAlignCriticScoresLateralDeviation) {
     params.PathAlignCritic.offset_from_furthest = 1;
     params.PathAlignCritic.trajectory_point_step = 1;
     CriticTestData fixture;
-    fixture.state.pose.pose.position.x = -1.0;
+    fixture.state.pose.pose.position.x = 0.9;
+    fixture.state.local_path_length = 0.5F;
     fixture.data.furthest_reached_path_point = 5;
     fixture.setAllPathPointsValid();
     fixture.setAllTrajectoryY(0.2f);
@@ -312,6 +335,7 @@ TEST(CriticScoreTest, PathAlignCriticKeepsCachedPathPointBetweenSparsePathSample
     params.PathAlignCritic.trajectory_point_step = 1;
     CriticTestData fixture;
     fixture.state.pose.pose.position.x = -1.0;
+    fixture.state.local_path_length = 0.5F;
     fixture.data.furthest_reached_path_point = 5;
     fixture.setAllPathPointsValid();
     fixture.trajectories.x.col(0).setZero();

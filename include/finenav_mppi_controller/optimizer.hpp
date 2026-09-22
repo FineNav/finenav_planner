@@ -241,6 +241,7 @@ class Optimizer {
                  const nav_msgs::msg::Path& plan) {
         state_.pose = robot_pose;
         state_.speed = robot_speed;
+        state_.local_path_length = static_cast<float>(utils::calculatePathLength(plan));
         path_ = utils::toTensor(plan);
         costs_.fill(0);
 
