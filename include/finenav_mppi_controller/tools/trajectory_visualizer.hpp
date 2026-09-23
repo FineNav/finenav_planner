@@ -143,6 +143,7 @@ class TrajectoryVisualizer {
                                                               const VisualizerConfig& config);
 
     finenav::viz::FineNavVisualizer visualizer_{};
+    bool visualizer_injected_{false};
     VisualizerConfig config_;
     mutable std::mutex mutex_;
     std::mutex lifecycle_mutex_;

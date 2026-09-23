@@ -42,6 +42,9 @@
 #include <vector>
 
 #include "builtin_interfaces/msg/time.hpp"
+#include "finenav_common/frames.hpp"
+#include "finenav_visualizer/color.hpp"
+#include "finenav_visualizer/marker_viz.hpp"
 #include "std_msgs/msg/color_rgba.hpp"
 #include "std_msgs/msg/header.hpp"
 
@@ -275,11 +278,12 @@ void TrajectoryVisualizer::setVisualizer(const finenav::viz::FineNavVisualizer& 
     stopWorker();
     std::lock_guard<std::mutex> lock(mutex_);
     visualizer_ = visualizer;
+    visualizer_injected_ = true;
 }
 
 bool TrajectoryVisualizer::hasVisualizer() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return static_cast<bool>(visualizer_);
+    return visualizer_injected_;
 }
 
 void TrajectoryVisualizer::configure(const VisualizerConfig& config) {
@@ -297,14 +301,12 @@ void TrajectoryVisualizer::configure(const VisualizerConfig& config) {
     finenav::viz::FineNavVisualizer visualizer;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!visualizer_) {
+        if (!visualizer_injected_) {
             throw std::logic_error("TrajectoryVisualizer requires an injected FineNavVisualizer");
         }
         visualizer = visualizer_;
         config_ = config;
     }
-    visualizer.markers().setBaseFrame(config.frame_id);
-
     channel_.restart();
     publish_thread_ = std::thread(&TrajectoryVisualizer::run, this);
 }
@@ -315,7 +317,7 @@ void TrajectoryVisualizer::submit(const models::Trajectories& candidates, const 
     VisualizerConfig config;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (!visualizer_) {
+        if (!visualizer_injected_) {
             return;
         }
         config = config_;
@@ -373,17 +375,18 @@ void TrajectoryVisualizer::run() {
 void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
     finenav::viz::FineNavVisualizer visualizer;
     VisualizerConfig config;
+    bool visualizer_injected = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         visualizer = visualizer_;
         config = config_;
+        visualizer_injected = visualizer_injected_;
     }
-    if (!visualizer) {
+    if (!visualizer_injected) {
         return;
     }
 
-    auto& markers = visualizer.markers();
-    markers.deleteAllMarkers(config.trajectory_topic);
+    auto& markers = visualizer.markers(config.trajectory_topic);
 
     for (const auto& marker : frame.trajectories.markers) {
         if (marker.action != visualization_msgs::msg::Marker::ADD || marker.points.empty()) {
@@ -395,7 +398,8 @@ void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
         for (const auto& point : marker.points) {
             points.emplace_back(point.x, point.y, point.z);
         }
-        markers.addLineStrip(points, marker.color, marker.scale.x, marker.ns);
+        markers.addLineStrip(points, marker.scale.x,
+                             finenav::viz::Color{marker.color.r, marker.color.g, marker.color.b, marker.color.a});
     }
 
     if (!frame.reference_path.poses.empty()) {
@@ -409,24 +413,27 @@ void TrajectoryVisualizer::publishFrame(const VisualizationFrame& frame) {
         color.g = 0.8F;
         color.b = 1.0F;
         color.a = 1.0F;
-        markers.addLineStrip(points, color, 0.04, "reference_path");
+        markers.addLineStrip(points, 0.04, finenav::viz::Color{color.r, color.g, color.b, color.a});
     }
 
-    markers.publish(config.trajectory_topic);
+    visualizer.publish(markers, finenav::common::Frame::World);
 }
 
 void TrajectoryVisualizer::publishClear() {
     finenav::viz::FineNavVisualizer visualizer;
     VisualizerConfig config;
+    bool visualizer_injected = false;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         visualizer = visualizer_;
         config = config_;
+        visualizer_injected = visualizer_injected_;
     }
-    if (!visualizer) {
+    if (!visualizer_injected) {
         return;
     }
-    visualizer.markers().deleteAllMarkers(config.trajectory_topic);
+    auto& markers = visualizer.markers(config.trajectory_topic);
+    visualizer.clear(markers);
 }
 
 visualization_msgs::msg::MarkerArray TrajectoryVisualizer::buildTrajectoryMarkers(

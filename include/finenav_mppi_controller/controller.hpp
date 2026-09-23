@@ -46,10 +46,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "finenav_core/algo_configurator.hpp"
-#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/algo_register_macros.hpp"
+#include "finenav_core/plugin_planner.hpp"
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
-#include "finenav_mppi_controller/map_view_def.hpp"
+#include "finenav_mppi_controller/world_view_def.hpp"
 #include "finenav_mppi_controller/optimizer.hpp"
 
 namespace nav2_mppi_controller {
@@ -86,7 +86,7 @@ class MPPIController {
                                                                .accel = false,
                                                                .time = false};
 
-    using IMapView = nav2_mppi_controller::IMapView;
+    using IWorldView = nav2_mppi_controller::IWorldView;
     using Context = finenav::core::PlanningContext<MPPIController>;
     using ConfigType = finenav_mppi_controller::Params;
 
@@ -147,7 +147,7 @@ class MPPIController {
     }
 
     std::optional<finenav::core::Trajectory<OutputProfile>> plan(
-        const finenav::core::PlanningContext<MPPIController>& ctx, const IMapView& map_view) {
+        const finenav::core::PlanningContext<MPPIController>& ctx, const IWorldView& world_view) {
         if (ctx.ref_traj.poses.empty()) {
             return std::nullopt;
         }
@@ -170,7 +170,7 @@ class MPPIController {
         const auto& twist = robot_state.twist;
 
         const auto t_optimize_start = Clock::now();
-        auto optimization_result = computeVelocityCommands(start_pose_stamped, twist, map_view);
+        auto optimization_result = computeVelocityCommands(start_pose_stamped, twist, world_view);
         const double ms_optimize = Ms(Clock::now() - t_optimize_start).count();
 
         if (visualizer_enabled_) {
@@ -284,7 +284,7 @@ class MPPIController {
     */
     // geometry_msgs::msg::TwistStamped computeVelocityCommands(
     OptimizationResult computeVelocityCommands(const geometry_msgs::msg::PoseStamped& robot_pose,
-                                               const geometry_msgs::msg::Twist& robot_speed, const IMapView& map_view) {
+                                               const geometry_msgs::msg::Twist& robot_speed, const IWorldView& world_view) {
 #ifdef BENCHMARK_TESTING
         auto start = std::chrono::system_clock::now();
 #endif
@@ -297,7 +297,7 @@ class MPPIController {
         //  	std::lock_guard<std::mutex> param_lock(*parameters_handler_->getLock());
         //
 
-        const auto result = optimizer_.evalControl(robot_pose, robot_speed, path_, map_view);
+        const auto result = optimizer_.evalControl(robot_pose, robot_speed, path_, world_view);
 
 #ifdef BENCHMARK_TESTING
         auto end = std::chrono::system_clock::now();
@@ -327,6 +327,6 @@ class MPPIController {
 
 }  // namespace nav2_mppi_controller
 
-FINENAV_REGISTER_ALGO_CONFIG(nav2_mppi_controller::MPPIController, finenav_mppi_controller)
+FINENAV_REGISTER_PLANNER(nav2_mppi_controller::MPPIController, finenav_mppi_controller)
 
 #endif  // NAV2_MPPI_CONTROLLER__CONTROLLER_HPP_

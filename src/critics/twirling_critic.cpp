@@ -39,7 +39,7 @@ void TwirlingCritic::initialize(const finenav_mppi_controller::Params& p) {
     weight_ = static_cast<float>(c.cost_weight);
 }
 
-void TwirlingCritic::score(CriticData& data, const IMapView& map_view) {
+void TwirlingCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }

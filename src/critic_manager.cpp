@@ -90,7 +90,7 @@ void CriticManager::on_configure(std::vector<std::unique_ptr<critics::CriticFunc
     }
 }
 
-void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map_view) const {
+void CriticManager::evalTrajectoriesScores(CriticData& data, const IWorldView& world_view) const {
     if (data.critic_cost_breakdown) {
         data.critic_cost_breakdown->clear();
     }
@@ -124,7 +124,7 @@ void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map
         if (data.critic_cost_breakdown) {
             costs_before = data.costs;
         }
-        critics_[q]->score(data, map_view);
+        critics_[q]->score(data, world_view);
         recordContribution(criticName(*critics_[q]), costs_before);
     }
 
@@ -133,7 +133,7 @@ void CriticManager::evalTrajectoriesScores(CriticData& data, const IMapView& map
         if (data.critic_cost_breakdown) {
             costs_before = data.costs;
         }
-        if (map_view.score(data)) {
+        if (world_view.score(data)) {
             recordContribution("WorldViewScore", costs_before);
         }
     }

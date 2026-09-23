@@ -45,7 +45,7 @@ void PathAlignCritic::initialize(const finenav_mppi_controller::Params& p) {
     use_path_orientations_ = c.use_path_orientations;
 }
 
-void PathAlignCritic::score(CriticData& data, const IMapView& map_view) {
+void PathAlignCritic::score(CriticData& data, const IWorldView& world_view) {
     // Don't apply close to goal, let the goal critics take over
 
     if (!this->enabled_) {
@@ -66,7 +66,7 @@ void PathAlignCritic::score(CriticData& data, const IMapView& map_view) {
     }
 
     // Don't apply when dynamic obstacles are blocking significant proportions of the local path
-    utils::setPathCostsIfNotSet(data, map_view);
+    utils::setPathCostsIfNotSet(data, world_view);
     const size_t closest_initial_path_point = utils::findPathTrajectoryInitialPoint(data);
     unsigned int invalid_ctr = 0;
     const float range = *data.furthest_reached_path_point - closest_initial_path_point;

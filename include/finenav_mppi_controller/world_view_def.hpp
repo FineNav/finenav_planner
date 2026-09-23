@@ -5,24 +5,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#ifndef FINENAV_MAP_VIEW_DEF_HPP
-#define FINENAV_MAP_VIEW_DEF_HPP
+#ifndef FINENAV_WORLD_VIEW_DEF_HPP
+#define FINENAV_WORLD_VIEW_DEF_HPP
 
 #include "finenav_mppi_controller/critic_data.hpp"
 
 namespace nav2_mppi_controller {
 /**
-     * @brief Read-only map view used by MPPI critics.
+     * @brief Read-only world view used by MPPI critics.
      *
      * CostCritic's OpenMPDynamic execution calls getCost() and isCollision()
      * concurrently on the same instance. Implementations used
      * with this execution mode must therefore support concurrent const reads and must
      * not mutate an unsynchronized cache from these methods.
      */
-class IMapView {
+class IWorldView {
   public:
-    IMapView() = default;
-    virtual ~IMapView() = default;
+    IWorldView() = default;
+    virtual ~IWorldView() = default;
     // 是否将未知区域视为可通行
     virtual bool isTrackingUnknown() const = 0;
 

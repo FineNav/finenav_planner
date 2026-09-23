@@ -21,7 +21,7 @@
 namespace nav2_mppi_controller {
 namespace {
 
-class TestMapView final : public IMapView {
+class TestWorldView final : public IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -38,7 +38,7 @@ class TestMapView final : public IMapView {
     mutable std::atomic<std::size_t> cost_queries_{0};
 };
 
-class ConcurrentMapView final : public IMapView {
+class ConcurrentWorldView final : public IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -89,11 +89,16 @@ finenav_mppi_controller::Params makeControllerParams() {
     return params;
 }
 
-MPPIController::Context makeContext(std::size_t path_size = 24) {
-    MPPIController::Context context;
+struct TestContext {
+    finenav::core::RobotState robot_state;
+    finenav::core::InputTrajectoryT<MPPIController> ref_traj;
+
+    operator MPPIController::Context() const { return {robot_state, ref_traj}; }
+};
+
+TestContext makeContext(std::size_t path_size = 24) {
+    TestContext context;
     context.robot_state.pose.orientation.w = 1.0;
-    context.goal_pose.position.x = 2.3;
-    context.goal_pose.orientation.w = 1.0;
     context.ref_traj.poses.reserve(path_size);
     for (std::size_t i = 0; i < path_size; ++i) {
         geometry_msgs::msg::Pose pose;
@@ -133,24 +138,24 @@ TEST(ControllerPlanTest, PlanReturnsFiniteBoundedTrajectory) {
     const auto params = makeControllerParams();
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
 
-    const auto result = controller.plan(makeContext(), map_view);
+    const auto result = controller.plan(makeContext(), world_view);
 
     ASSERT_TRUE(result.has_value());
     expectFiniteBoundedOutput(*result, params);
-    EXPECT_GT(map_view.costQueries(), 0u);
+    EXPECT_GT(world_view.costQueries(), 0u);
 }
 
 TEST(ControllerPlanTest, ResetAllowsPlanningAgain) {
     const auto params = makeControllerParams();
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
 
-    ASSERT_TRUE(controller.plan(makeContext(), map_view).has_value());
+    ASSERT_TRUE(controller.plan(makeContext(), world_view).has_value());
     controller.reset();
-    const auto second = controller.plan(makeContext(), map_view);
+    const auto second = controller.plan(makeContext(), world_view);
 
     ASSERT_TRUE(second.has_value());
     expectFiniteBoundedOutput(*second, params);
@@ -178,11 +183,11 @@ TEST(ControllerPlanTest, VisualizedPlanResetStressWithPracticalDimensions) {
             finenav::viz::FineNavVisualizer framework_visualizer(visualizer_node);
             controller.setVisualizer(framework_visualizer);
         }
-        TestMapView map_view;
+        TestWorldView world_view;
 
         for (int episode = 0; episode < 5; ++episode) {
             for (int cycle = 0; cycle < 3; ++cycle) {
-                ASSERT_TRUE(controller.plan(makeContext(), map_view).has_value());
+                ASSERT_TRUE(controller.plan(makeContext(), world_view).has_value());
             }
             controller.reset();
         }
@@ -196,9 +201,9 @@ TEST(ControllerPlanTest, PlanPreservesConfiguredHorizon) {
     params.time_steps = 5;
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
 
-    const auto result = controller.plan(makeContext(), map_view);
+    const auto result = controller.plan(makeContext(), world_view);
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result->poses.size(), 5u);
@@ -211,13 +216,13 @@ TEST(ControllerPlanTest, PlanUsesConfiguredCostCriticWorkerCount) {
     params.CostCritic.chunk_size = 1;
     MPPIController controller;
     controller.configure(params);
-    ConcurrentMapView map_view;
+    ConcurrentWorldView world_view;
 
-    const auto result = controller.plan(makeContext(), map_view);
+    const auto result = controller.plan(makeContext(), world_view);
 
     ASSERT_TRUE(result.has_value());
     expectFiniteBoundedOutput(*result, params);
-    EXPECT_GT(map_view.maxConcurrentCostQueries(), 1);
+    EXPECT_GT(world_view.maxConcurrentCostQueries(), 1);
 }
 
 TEST(ControllerPlanTest, RejectsNegativeCostCriticWorkerCount) {
@@ -240,13 +245,13 @@ TEST(ControllerPlanTest, EmptyReferencePathReturnsNoPlan) {
     const auto params = makeControllerParams();
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
     const auto context = makeContext(0);
 
-    const auto result = controller.plan(context, map_view);
+    const auto result = controller.plan(context, world_view);
 
     EXPECT_FALSE(result.has_value());
-    EXPECT_EQ(map_view.costQueries(), 0u);
+    EXPECT_EQ(world_view.costQueries(), 0u);
 }
 
 TEST(ControllerPlanTest, FirstCommandRespectsFeedbackAccelerationBounds) {
@@ -259,12 +264,12 @@ TEST(ControllerPlanTest, FirstCommandRespectsFeedbackAccelerationBounds) {
 
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
     auto context = makeContext();
     context.robot_state.twist.linear.x = 0.45;
     context.robot_state.twist.angular.z = 0.6;
 
-    const auto result = controller.plan(context, map_view);
+    const auto result = controller.plan(context, world_view);
 
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->twists.empty());
@@ -284,12 +289,12 @@ TEST(ControllerPlanTest, OutputSequenceRespectsAccelerationBetweenKnots) {
 
     MPPIController controller;
     controller.configure(params);
-    TestMapView map_view;
+    TestWorldView world_view;
     auto context = makeContext();
     context.robot_state.twist.linear.x = 0.0;
     context.robot_state.twist.angular.z = 0.0;
 
-    const auto result = controller.plan(context, map_view);
+    const auto result = controller.plan(context, world_view);
 
     ASSERT_TRUE(result.has_value());
     ASSERT_EQ(result->twists.size(), static_cast<std::size_t>(params.time_steps));

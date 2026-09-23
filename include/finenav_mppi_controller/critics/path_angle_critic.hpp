@@ -54,7 +54,7 @@ class PathAngleCritic : public CriticFunction {
    *
    * @param costs [out] add goal angle cost values to this tensor
    */
-    void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) override;
+    void score(CriticData& data, const nav2_mppi_controller::IWorldView& world_view) override;
 
   protected:
     float max_angle_to_furthest_{0};

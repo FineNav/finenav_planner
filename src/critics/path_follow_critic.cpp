@@ -41,12 +41,12 @@ void PathFollowCritic::initialize(const finenav_mppi_controller::Params& p) {
     threshold_to_consider_ = static_cast<float>(p.threshold_to_consider);
 }
 
-void PathFollowCritic::score(CriticData& data, const IMapView& map_view) {
+void PathFollowCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_ || data.path.x.size() < 2 || data.state.local_path_length < threshold_to_consider_) {
         return;
     }
     utils::setPathFurthestPointIfNotSet(data);
-    utils::setPathCostsIfNotSet(data, map_view);
+    utils::setPathCostsIfNotSet(data, world_view);
     const size_t path_size = data.path.x.size() - 1;
 
     auto offseted_idx = std::min(*data.furthest_reached_path_point + offset_from_furthest_, path_size - 1);

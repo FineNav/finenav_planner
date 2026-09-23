@@ -50,7 +50,7 @@ void ConstraintCritic::initialize(const finenav_mppi_controller::Params& p) {
     RCLCPP_DEBUG(logger_, "Critic initialized");
 }
 
-void ConstraintCritic::score(CriticData& data, const IMapView& map_view) {
+void ConstraintCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }

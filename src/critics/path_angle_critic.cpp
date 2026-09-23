@@ -50,7 +50,7 @@ void PathAngleCritic::initialize(const finenav_mppi_controller::Params& p) {
     forward_preference_ = !reversing_allowed_;
 }
 
-void PathAngleCritic::score(CriticData& data, const IMapView& map_view) {
+void PathAngleCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }

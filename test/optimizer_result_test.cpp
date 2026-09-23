@@ -17,7 +17,7 @@
 namespace mppi {
 namespace {
 
-class TestMapView : public nav2_mppi_controller::IMapView {
+class TestWorldView : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -33,7 +33,7 @@ class TrackingCritic : public critics::CriticFunction {
 
     void initialize(const finenav_mppi_controller::Params&) override { ++initialize_count_; }
 
-    void score(CriticData&, const nav2_mppi_controller::IMapView&) override { ++score_count_; }
+    void score(CriticData&, const nav2_mppi_controller::IWorldView&) override { ++score_count_; }
 
   private:
     int& initialize_count_;
@@ -269,8 +269,8 @@ class TestOptimizer : public Optimizer {
 
     void resetOptimizer() { reset(); }
 
-    void scoreCritics(const nav2_mppi_controller::IMapView& map_view) {
-        critic_manager_.evalTrajectoriesScores(critics_data_, map_view);
+    void scoreCritics(const nav2_mppi_controller::IWorldView& world_view) {
+        critic_manager_.evalTrajectoriesScores(critics_data_, world_view);
     }
 };
 
@@ -558,8 +558,8 @@ TEST(OptimizerResultTest, InitializeTransfersCriticsToManager) {
     EXPECT_TRUE(critics.empty());
     EXPECT_EQ(initialize_count, 1);
 
-    TestMapView map_view;
-    optimizer.scoreCritics(map_view);
+    TestWorldView world_view;
+    optimizer.scoreCritics(world_view);
     EXPECT_EQ(score_count, 1);
 }
 

@@ -44,7 +44,7 @@
 #endif
 
 namespace mppi::critics {
-using nav2_mppi_controller::IMapView;
+using nav2_mppi_controller::IWorldView;
 
 CostCritic::CostCritic(CostCriticExecutionOptions options) : execution_options_(std::move(options)) {
     if (execution_options_.num_threads == 0U) {
@@ -121,7 +121,7 @@ void CostCritic::initialize(const finenav_mppi_controller::Params& p) {
                 execution_options_.num_threads, execution_options_.chunk_size);
 }
 
-void CostCritic::score(CriticData& data, const IMapView& map_view) {
+void CostCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }
@@ -144,13 +144,13 @@ void CostCritic::score(CriticData& data, const IMapView& map_view) {
         for (Eigen::Index j = 0; j < traj_len; ++j) {
             // The center-point cost does not use orientation and retains the
             // detailed cost value that a footprint collision check would mask.
-            const float pose_cost = static_cast<float>(map_view.getCost(traj.x(i, j), traj.y(i, j)));
+            const float pose_cost = static_cast<float>(world_view.getCost(traj.x(i, j), traj.y(i, j)));
             // In free space.
             if (pose_cost < 1.0f) {
                 continue;
             }
 
-            if (inCollision(traj.x(i, j), traj.y(i, j), traj.yaws(i, j), map_view)) {
+            if (inCollision(traj.x(i, j), traj.y(i, j), traj.yaws(i, j), world_view)) {
                 trajectory_collide = true;
                 break;
             }

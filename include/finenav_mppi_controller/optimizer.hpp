@@ -54,7 +54,7 @@
 #include "finenav_mppi_controller/tools/noise_generator.hpp"
 //#include "finenav_mppi_controller/tools/parameters_handler.hpp"
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
-#include "finenav_mppi_controller/map_view_def.hpp"
+#include "finenav_mppi_controller/world_view_def.hpp"
 #include "finenav_mppi_controller/tools/utils.hpp"
 
 namespace mppi {
@@ -151,11 +151,11 @@ class Optimizer {
     // geometry_msgs::msg::TwistStamped evalControl(
     OptimizationResult evalControl(const geometry_msgs::msg::PoseStamped& robot_pose,
                                    const geometry_msgs::msg::Twist& robot_speed, const nav_msgs::msg::Path& plan,
-                                   const nav2_mppi_controller::IMapView& map_view) {
+                                   const nav2_mppi_controller::IWorldView& world_view) {
         prepare(robot_pose, robot_speed, plan);
 
         do {
-            optimize(map_view);
+            optimize(world_view);
         } while (fallback(critics_data_.fail_flag));
         return finalizeControlSequence();
     }
@@ -222,10 +222,10 @@ class Optimizer {
    * @brief Main function to generate, score, and return trajectories
    */
 
-    void optimize(const nav2_mppi_controller::IMapView& map_view) {
+    void optimize(const nav2_mppi_controller::IWorldView& world_view) {
         for (size_t i = 0; i < settings_.iteration_count; ++i) {
             generateNoisedTrajectories();
-            critic_manager_.evalTrajectoriesScores(critics_data_, map_view);
+            critic_manager_.evalTrajectoriesScores(critics_data_, world_view);
             updateControlSequence();
         }
     }

@@ -31,7 +31,7 @@ constexpr unsigned int kTimeSteps = 30;
 constexpr unsigned int kIterationCount = 1;
 constexpr unsigned int kPathPoints = 50;
 
-class EmptyMapView final : public nav2_mppi_controller::IMapView {
+class EmptyWorldView final : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -134,11 +134,11 @@ void BM_OptimizerEvalControl(benchmark::State& state) {
     const auto pose = makePose();
     const auto speed = makeSpeed();
     const auto path = makePath();
-    EmptyMapView map_view;
-    benchmark::DoNotOptimize(optimizer.evalControl(pose, speed, path, map_view));
+    EmptyWorldView world_view;
+    benchmark::DoNotOptimize(optimizer.evalControl(pose, speed, path, world_view));
 
     for (auto _ : state) {
-        auto result = optimizer.evalControl(pose, speed, path, map_view);
+        auto result = optimizer.evalControl(pose, speed, path, world_view);
         benchmark::DoNotOptimize(result.controls);
         benchmark::DoNotOptimize(result.trajectory);
     }
@@ -195,8 +195,8 @@ void BM_TrajectoryIntegration(benchmark::State& state) {
     const auto pose = makePose();
     const auto speed = makeSpeed();
     const auto path = makePath();
-    EmptyMapView map_view;
-    const auto initial = optimizer.evalControl(pose, speed, path, map_view);
+    EmptyWorldView world_view;
+    const auto initial = optimizer.evalControl(pose, speed, path, world_view);
     const auto sequence = initial.controls;
     mppi::models::BatchArray output(kTimeSteps, 3);
 
@@ -212,8 +212,8 @@ void BM_ControlUpdate(benchmark::State& state) {
     const auto pose = makePose();
     const auto speed = makeSpeed();
     const auto path = makePath();
-    EmptyMapView map_view;
-    benchmark::DoNotOptimize(optimizer.evalControl(pose, speed, path, map_view));
+    EmptyWorldView world_view;
+    benchmark::DoNotOptimize(optimizer.evalControl(pose, speed, path, world_view));
 
     for (auto _ : state) {
         optimizer.updateControls();

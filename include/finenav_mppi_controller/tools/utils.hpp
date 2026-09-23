@@ -51,7 +51,7 @@
 
 #include "builtin_interfaces/msg/time.hpp"
 #include "finenav_mppi_controller/critic_data.hpp"
-#include "finenav_mppi_controller/map_view_def.hpp"
+#include "finenav_mppi_controller/world_view_def.hpp"
 #include "finenav_mppi_controller/models/control_sequence.hpp"
 #include "finenav_mppi_controller/models/optimizer_settings.hpp"
 #include "finenav_mppi_controller/models/path.hpp"
@@ -263,8 +263,8 @@ inline void setPathFurthestPointIfNotSet(CriticData& data) {
  * @brief evaluate path costs
  * @param data Data to use
  */
-template <typename MapView>
-inline void findPathCosts(CriticData& data, const MapView& map_view) {
+template <typename WorldView>
+inline void findPathCosts(CriticData& data, const WorldView& world_view) {
     const size_t path_segments_count = data.path.x.size() - 1;
     data.path_pts_valid = std::vector<bool>(path_segments_count, false);
     for (unsigned int idx = 0; idx < path_segments_count; idx++) {
@@ -275,7 +275,7 @@ inline void findPathCosts(CriticData& data, const MapView& map_view) {
         //      continue;
         //    }
 
-        switch (map_view.getCost(path_x, path_y)) {
+        switch (world_view.getCost(path_x, path_y)) {
             // 使用具体数值替代 nav2_costmap_2d 宏常量：
             // NO_INFORMATION = 255, LETHAL_OBSTACLE = 254, INSCRIBED_INFLATED_OBSTACLE = 253
             case 254:  // LETHAL_OBSTACLE
@@ -286,7 +286,7 @@ inline void findPathCosts(CriticData& data, const MapView& map_view) {
                 continue;
             case 255:  // NO_INFORMATION
             {
-                const bool is_tracking_unknown = map_view.isTrackingUnknown();
+                const bool is_tracking_unknown = world_view.isTrackingUnknown();
                 (*data.path_pts_valid)[idx] = is_tracking_unknown ? true : false;
                 continue;
             }
@@ -300,10 +300,10 @@ inline void findPathCosts(CriticData& data, const MapView& map_view) {
  * @brief evaluate path costs if it is not set
  * @param data Data to use
  */
-template <typename MapView>
-inline void setPathCostsIfNotSet(CriticData& data, const MapView& map_view) {
+template <typename WorldView>
+inline void setPathCostsIfNotSet(CriticData& data, const WorldView& world_view) {
     if (!data.path_pts_valid) {
-        findPathCosts(data, map_view);
+        findPathCosts(data, world_view);
     }
 }
 

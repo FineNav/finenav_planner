@@ -51,7 +51,7 @@ void VelocityDeadbandCritic::initialize(const finenav_mppi_controller::Params& p
     //      << deadband_velocities_.at(2) << "]");
 }
 
-void VelocityDeadbandCritic::score(CriticData& data, const IMapView& map_view) {
+void VelocityDeadbandCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }

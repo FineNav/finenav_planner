@@ -25,7 +25,7 @@
 namespace mppi::critics {
 namespace {
 
-class DeterministicMapView final : public nav2_mppi_controller::IMapView {
+class DeterministicWorldView final : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -52,7 +52,7 @@ class DeterministicMapView final : public nav2_mppi_controller::IMapView {
     int throw_after{-1};
 };
 
-class ConcurrentAccessMapView final : public nav2_mppi_controller::IMapView {
+class ConcurrentAccessWorldView final : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -75,11 +75,11 @@ class ConcurrentAccessMapView final : public nav2_mppi_controller::IMapView {
     mutable std::atomic<int> max_active_calls_{0};
 };
 
-class CountingWorkloadMapView final : public nav2_mppi_controller::IMapView {
+class CountingWorkloadWorldView final : public nav2_mppi_controller::IWorldView {
   public:
     static constexpr std::size_t max_trajectories = 3000U;
 
-    explicit CountingWorkloadMapView(bool uneven_work) : uneven_work_(uneven_work) { reset(); }
+    explicit CountingWorkloadWorldView(bool uneven_work) : uneven_work_(uneven_work) { reset(); }
 
     bool isTrackingUnknown() const override { return false; }
 
@@ -186,13 +186,13 @@ struct ScoreResult {
 };
 
 ScoreResult scoreWithOptions(std::size_t thread_count, std::size_t chunk_size = 1U,
-                             DeterministicMapView* map_view = nullptr) {
+                             DeterministicWorldView* world_view = nullptr) {
     CostCriticFixture fixture;
-    DeterministicMapView local_map_view;
-    auto& selected_map_view = map_view == nullptr ? local_map_view : *map_view;
+    DeterministicWorldView local_world_view;
+    auto& selected_world_view = world_view == nullptr ? local_world_view : *world_view;
     CostCritic critic({thread_count, chunk_size});
     critic.initialize(makeParams());
-    critic.score(fixture.data, selected_map_view);
+    critic.score(fixture.data, selected_world_view);
     return {fixture.costs, fixture.data.fail_flag};
 }
 
@@ -231,34 +231,34 @@ struct LargeCostCriticFixture {
 
 void expectCompleteParallelScore(unsigned int batch_size, unsigned int time_steps, bool uneven_work,
                                  unsigned int rounds) {
-    ASSERT_LE(batch_size, CountingWorkloadMapView::max_trajectories);
-    CountingWorkloadMapView map_view(uneven_work);
+    ASSERT_LE(batch_size, CountingWorkloadWorldView::max_trajectories);
+    CountingWorkloadWorldView world_view(uneven_work);
     LargeCostCriticFixture fixture(batch_size, time_steps);
     CostCritic critic({4U, 1U});
     critic.initialize(makeParams());
 
     for (unsigned int round = 0; round < rounds; ++round) {
-        map_view.reset();
+        world_view.reset();
         fixture.costs.setZero();
         fixture.data.fail_flag = false;
-        ASSERT_NO_THROW(critic.score(fixture.data, map_view));
+        ASSERT_NO_THROW(critic.score(fixture.data, world_view));
         ASSERT_FALSE(fixture.data.fail_flag);
         ASSERT_TRUE(fixture.costs.allFinite());
         for (unsigned int trajectory = 0; trajectory < batch_size; ++trajectory) {
-            EXPECT_EQ(map_view.queryCount(trajectory), time_steps);
-            EXPECT_EQ(map_view.collisionCount(trajectory), time_steps);
+            EXPECT_EQ(world_view.queryCount(trajectory), time_steps);
+            EXPECT_EQ(world_view.collisionCount(trajectory), time_steps);
             EXPECT_GT(fixture.costs(static_cast<Eigen::Index>(trajectory)), 0.0F);
         }
     }
 
     if (uneven_work) {
-        EXPECT_GT(map_view.maxActiveCalls(), 1);
+        EXPECT_GT(world_view.maxActiveCalls(), 1);
     }
 }
 
 TEST(CostCriticParallelTest, SingleThreadOptionsMatchDefaultCritic) {
     const auto params = makeParams();
-    const DeterministicMapView map_view;
+    const DeterministicWorldView world_view;
     CostCriticFixture default_fixture;
     CostCriticFixture explicit_fixture;
     CostCritic default_critic;
@@ -266,8 +266,8 @@ TEST(CostCriticParallelTest, SingleThreadOptionsMatchDefaultCritic) {
     default_critic.initialize(params);
     explicit_critic.initialize(params);
 
-    default_critic.score(default_fixture.data, map_view);
-    explicit_critic.score(explicit_fixture.data, map_view);
+    default_critic.score(default_fixture.data, world_view);
+    explicit_critic.score(explicit_fixture.data, world_view);
 
     ASSERT_EQ(default_fixture.costs.size(), explicit_fixture.costs.size());
     for (Eigen::Index index = 0; index < default_fixture.costs.size(); ++index) {
@@ -288,36 +288,36 @@ TEST(CostCriticParallelTest, MoreThreadsThanTrajectoriesStillScoresEveryTrajecto
 }
 
 TEST(CostCriticParallelTest, OpenMPDynamicCanBeReusedAfterCallbackException) {
-    DeterministicMapView map_view;
-    map_view.throw_after = 1;
+    DeterministicWorldView world_view;
+    world_view.throw_after = 1;
     CostCriticFixture failing_fixture;
     CostCritic critic({4U, 1U});
     critic.initialize(makeParams());
-    EXPECT_THROW(critic.score(failing_fixture.data, map_view), std::runtime_error);
+    EXPECT_THROW(critic.score(failing_fixture.data, world_view), std::runtime_error);
 
-    map_view.throw_after = -1;
-    map_view.query_count.store(0, std::memory_order_relaxed);
+    world_view.throw_after = -1;
+    world_view.query_count.store(0, std::memory_order_relaxed);
     CostCriticFixture recovered_fixture;
-    EXPECT_NO_THROW(critic.score(recovered_fixture.data, map_view));
+    EXPECT_NO_THROW(critic.score(recovered_fixture.data, world_view));
     EXPECT_FALSE(recovered_fixture.data.fail_flag);
 }
 
-TEST(CostCriticParallelTest, OpenMPDynamicPropagatesMapViewExceptions) {
-    DeterministicMapView map_view;
-    map_view.throw_after = 1;
+TEST(CostCriticParallelTest, OpenMPDynamicPropagatesWorldViewExceptions) {
+    DeterministicWorldView world_view;
+    world_view.throw_after = 1;
     CostCriticFixture fixture;
     CostCritic critic({4U, 1U});
     critic.initialize(makeParams());
-    EXPECT_THROW(critic.score(fixture.data, map_view), std::runtime_error);
+    EXPECT_THROW(critic.score(fixture.data, world_view), std::runtime_error);
 }
 
-TEST(CostCriticParallelTest, OpenMPDynamicCallsSharedMapViewConcurrently) {
-    ConcurrentAccessMapView map_view;
+TEST(CostCriticParallelTest, OpenMPDynamicCallsSharedWorldViewConcurrently) {
+    ConcurrentAccessWorldView world_view;
     CostCriticFixture fixture;
     CostCritic critic({4U, 1U});
     critic.initialize(makeParams());
-    critic.score(fixture.data, map_view);
-    EXPECT_GT(map_view.maxActiveCalls(), 1);
+    critic.score(fixture.data, world_view);
+    EXPECT_GT(world_view.maxActiveCalls(), 1);
 }
 
 TEST(CostCriticParallelTest, ProductionBatchIsCompleteAcrossRepeatedParallelScores) {

@@ -24,7 +24,7 @@ static_assert(
     std::is_same_v<typename decltype(mppi::CriticCostBreakdown::contributions)::value_type, std::vector<float>>,
     "Diagnostic critic contributions must use STL-owned float storage");
 
-class EmptyMapView : public nav2_mppi_controller::IMapView {
+class EmptyWorldView : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -33,7 +33,7 @@ class EmptyMapView : public nav2_mppi_controller::IMapView {
     int getCost(float, float) const override { return 0; }
 };
 
-class ScoringMapView final : public EmptyMapView {
+class ScoringWorldView final : public EmptyWorldView {
   public:
     bool score(mppi::CriticData& data) const override {
         data.costs(0) += 3.0F;
@@ -48,7 +48,7 @@ class AddCritic final : public mppi::critics::CriticFunction {
 
     void initialize(const finenav_mppi_controller::Params&) override {}
 
-    void score(mppi::CriticData& data, const nav2_mppi_controller::IMapView&) override {
+    void score(mppi::CriticData& data, const nav2_mppi_controller::IWorldView&) override {
         data.costs += mppi::models::Vector::Constant(data.costs.size(), amount_);
     }
 
@@ -60,7 +60,7 @@ class CollisionCritic final : public mppi::critics::CriticFunction {
   public:
     void initialize(const finenav_mppi_controller::Params&) override {}
 
-    void score(mppi::CriticData& data, const nav2_mppi_controller::IMapView&) override {
+    void score(mppi::CriticData& data, const nav2_mppi_controller::IWorldView&) override {
         data.costs(0) = std::numeric_limits<float>::infinity();
     }
 };
@@ -82,8 +82,8 @@ TEST(CriticBreakdownTest, CapturesFiniteAndCollisionDeltas) {
     finenav_mppi_controller::Params params;
     mppi::CriticManager manager;
     manager.on_configure(critics, params);
-    EmptyMapView map_view;
-    manager.evalTrajectoriesScores(data, map_view);
+    EmptyWorldView world_view;
+    manager.evalTrajectoriesScores(data, world_view);
 
     ASSERT_TRUE(breakdown.valid);
     ASSERT_EQ(breakdown.names.size(), 2U);
@@ -111,14 +111,14 @@ TEST(CriticBreakdownTest, NullBreakdownPreservesScoringPath) {
     finenav_mppi_controller::Params params;
     mppi::CriticManager manager;
     manager.on_configure(critics, params);
-    EmptyMapView map_view;
-    manager.evalTrajectoriesScores(data, map_view);
+    EmptyWorldView world_view;
+    manager.evalTrajectoriesScores(data, world_view);
 
     EXPECT_FLOAT_EQ(data.costs(0), 1.0F);
     EXPECT_FLOAT_EQ(data.costs(1), 1.0F);
 }
 
-TEST(CriticBreakdownTest, DefaultMapViewLeavesCostsAndBreakdownUnchanged) {
+TEST(CriticBreakdownTest, DefaultWorldViewLeavesCostsAndBreakdownUnchanged) {
     mppi::models::State state;
     mppi::models::Trajectories trajectories;
     mppi::models::Path path;
@@ -132,9 +132,9 @@ TEST(CriticBreakdownTest, DefaultMapViewLeavesCostsAndBreakdownUnchanged) {
     finenav_mppi_controller::Params params;
     mppi::CriticManager manager;
     manager.on_configure(critics, params);
-    EmptyMapView map_view;
+    EmptyWorldView world_view;
 
-    manager.evalTrajectoriesScores(data, map_view);
+    manager.evalTrajectoriesScores(data, world_view);
 
     EXPECT_FLOAT_EQ(data.costs(0), 0.0F);
     EXPECT_FLOAT_EQ(data.costs(1), 0.0F);
@@ -156,9 +156,9 @@ TEST(CriticBreakdownTest, CapturesWorldViewScoreDelta) {
     finenav_mppi_controller::Params params;
     mppi::CriticManager manager;
     manager.on_configure(critics, params);
-    ScoringMapView map_view;
+    ScoringWorldView world_view;
 
-    manager.evalTrajectoriesScores(data, map_view);
+    manager.evalTrajectoriesScores(data, world_view);
 
     ASSERT_TRUE(breakdown.valid);
     ASSERT_EQ(breakdown.names.size(), 1U);

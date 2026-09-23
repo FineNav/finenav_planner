@@ -29,9 +29,9 @@ namespace models = mppi::models;
 
 enum class Scenario : int { CenterCost = 0, FootprintScan = 1, MixedEarlyCollision = 2 };
 
-class BenchmarkMapView final : public nav2_mppi_controller::IMapView {
+class BenchmarkWorldView final : public nav2_mppi_controller::IWorldView {
   public:
-    explicit BenchmarkMapView(Scenario scenario) : scenario_(scenario) {}
+    explicit BenchmarkWorldView(Scenario scenario) : scenario_(scenario) {}
 
     bool isTrackingUnknown() const override { return false; }
 
@@ -68,7 +68,7 @@ class BenchmarkMapView final : public nav2_mppi_controller::IMapView {
 struct BenchmarkInput {
     BenchmarkInput(unsigned int batch_size, unsigned int time_steps, Scenario scenario)
         : costs(models::Vector::Zero(batch_size)),
-          map_view(scenario),
+          world_view(scenario),
           data{state,        trajectories, path, costs, model_dt, false, std::make_shared<DiffDriveMotionModel>(),
                std::nullopt, std::nullopt} {
         state.reset(batch_size, time_steps);
@@ -100,7 +100,7 @@ struct BenchmarkInput {
     models::Path path;
     models::Vector costs;
     float model_dt{0.05F};
-    BenchmarkMapView map_view;
+    BenchmarkWorldView world_view;
     CriticData data;
 };
 
@@ -144,21 +144,21 @@ void BM_CostCritic(benchmark::State& state) {
     BenchmarkInput oracle(batch_size, time_steps, scenario);
     CostCritic serial_critic({1U, 1U});
     serial_critic.initialize(makeParams());
-    serial_critic.score(oracle.data, oracle.map_view);
+    serial_critic.score(oracle.data, oracle.world_view);
     const models::Vector oracle_costs = oracle.costs;
     const bool oracle_fail = oracle.data.fail_flag;
 
     BenchmarkInput candidate(batch_size, time_steps, scenario);
     CostCritic candidate_critic({thread_count, chunk_size});
     candidate_critic.initialize(makeParams());
-    candidate_critic.score(candidate.data, candidate.map_view);
+    candidate_critic.score(candidate.data, candidate.world_view);
     expectOracle(oracle_costs, oracle_fail, candidate);
 
     for (auto _ : state) {
         state.PauseTiming();
         candidate.resetCosts();
         state.ResumeTiming();
-        candidate_critic.score(candidate.data, candidate.map_view);
+        candidate_critic.score(candidate.data, candidate.world_view);
         benchmark::DoNotOptimize(candidate.costs.data());
         benchmark::DoNotOptimize(candidate.data.fail_flag);
     }

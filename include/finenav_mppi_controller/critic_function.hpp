@@ -35,7 +35,7 @@
 //#include "finenav_mppi_controller/tools/parameters_handler.hpp"
 #include "finenav_mppi_controller/critic_data.hpp"
 #include "finenav_mppi_controller/finenav_mppi_controller_params.hpp"
-#include "finenav_mppi_controller/map_view_def.hpp"
+#include "finenav_mppi_controller/world_view_def.hpp"
 
 namespace mppi::critics {
 
@@ -60,7 +60,7 @@ class CriticFunction {
     * @brief Main function to score trajectory
     * @param data Critic data to use in scoring
     */
-    virtual void score(CriticData& data, const nav2_mppi_controller::IMapView& map_view) = 0;
+    virtual void score(CriticData& data, const nav2_mppi_controller::IWorldView& world_view) = 0;
 
     /**
     * @brief Initialize critic

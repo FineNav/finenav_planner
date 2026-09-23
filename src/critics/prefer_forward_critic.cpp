@@ -40,7 +40,7 @@ void PreferForwardCritic::initialize(const finenav_mppi_controller::Params& p) {
     threshold_to_consider_ = static_cast<float>(p.threshold_to_consider);
 }
 
-void PreferForwardCritic::score(CriticData& data, const IMapView& map_view) {
+void PreferForwardCritic::score(CriticData& data, const IWorldView& world_view) {
     if (!this->enabled_) {
         return;
     }

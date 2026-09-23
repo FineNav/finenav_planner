@@ -20,6 +20,7 @@ set(dependencies_pkgs
   std_msgs
   tf2_geometry_msgs
   angles
+  finenav_common
   finenav_core
   finenav_visualizer
   generate_parameter_library
@@ -241,6 +242,11 @@ if(BUILD_TESTING)
     mppi_critics
     finenav_mppi_controller_params
   )
+  ament_add_gtest(world_view_interface_test
+    test/world_view_interface_test.cpp
+  )
+  ament_target_dependencies(world_view_interface_test ${dependencies_pkgs})
+  target_include_directories(world_view_interface_test PRIVATE include)
 endif()
 
 option(BUILD_BENCHMARKS "Build Eigen MPPI benchmarks" OFF)

@@ -29,7 +29,7 @@
 namespace mppi::critics {
 namespace {
 
-class TestMapView final : public nav2_mppi_controller::IMapView {
+class TestWorldView final : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -92,11 +92,11 @@ TEST(CriticScoreTest, DisabledCriticLeavesCostsUnchanged) {
     params.TwirlingCritic.enabled = false;
     CriticTestData fixture;
     fixture.state.wz.fill(0.4f);
-    TestMapView map_view;
+    TestWorldView world_view;
     TwirlingCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     EXPECT_EQ(fixture.costs(0), 0.0f);
     EXPECT_EQ(fixture.costs(1), 0.0f);
@@ -107,15 +107,15 @@ TEST(CriticScoreTest, CostCriticQueriesPlanarMapCoordinates) {
     CriticTestData fixture;
     fixture.trajectories.x.setConstant(1.25F);
     fixture.trajectories.y.setConstant(-0.5F);
-    TestMapView map_view;
+    TestWorldView world_view;
     CostCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
-    EXPECT_GT(map_view.cost_queries, 0U);
-    EXPECT_FLOAT_EQ(map_view.last_cost_x, 1.25F);
-    EXPECT_FLOAT_EQ(map_view.last_cost_y, -0.5F);
+    EXPECT_GT(world_view.cost_queries, 0U);
+    EXPECT_FLOAT_EQ(world_view.last_cost_x, 1.25F);
+    EXPECT_FLOAT_EQ(world_view.last_cost_y, -0.5F);
 }
 
 TEST(CriticScoreTest, ConstraintCriticPenalizesVelocityAboveLimit) {
@@ -124,11 +124,11 @@ TEST(CriticScoreTest, ConstraintCriticPenalizesVelocityAboveLimit) {
     params.vy_max = 0.0;
     CriticTestData fixture;
     fixture.state.vx.fill(1.0f);
-    TestMapView map_view;
+    TestWorldView world_view;
     ConstraintCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -139,11 +139,11 @@ TEST(CriticScoreTest, ConstraintCriticPenalizesAckermannTurningRadius) {
     fixture.data.motion_model = std::make_shared<AckermannMotionModel>();
     fixture.state.vx.fill(0.1f);
     fixture.state.wz.fill(1.0f);
-    TestMapView map_view;
+    TestWorldView world_view;
     ConstraintCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -154,11 +154,11 @@ TEST(CriticScoreTest, ConstraintCriticKeepsStationaryAckermannCostFinite) {
     fixture.data.motion_model = std::make_shared<AckermannMotionModel>();
     fixture.state.vx.setZero();
     fixture.state.wz.setZero();
-    TestMapView map_view;
+    TestWorldView world_view;
     ConstraintCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     for (Eigen::Index i = 0; i < fixture.costs.size(); ++i) {
         EXPECT_TRUE(std::isfinite(fixture.costs(i)));
@@ -172,11 +172,11 @@ TEST(CriticScoreTest, PreferForwardCriticSkipsReverseMotionBelowPathLengthThresh
     CriticTestData fixture;
     fixture.state.local_path_length = 0.49F;
     fixture.state.vx.fill(-0.2f);
-    TestMapView map_view;
+    TestWorldView world_view;
     PreferForwardCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     EXPECT_EQ(fixture.costs(0), 0.0F);
     EXPECT_EQ(fixture.costs(1), 0.0F);
@@ -188,11 +188,11 @@ TEST(CriticScoreTest, PreferForwardCriticPenalizesReverseMotionAtPathLengthThres
     CriticTestData fixture;
     fixture.state.local_path_length = 0.5F;
     fixture.state.vx.fill(-0.2F);
-    TestMapView map_view;
+    TestWorldView world_view;
     PreferForwardCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -202,11 +202,11 @@ TEST(CriticScoreTest, TwirlingCriticPenalizesAngularMotion) {
     params.TwirlingCritic.enabled = true;
     CriticTestData fixture;
     fixture.state.wz.fill(0.4f);
-    TestMapView map_view;
+    TestWorldView world_view;
     TwirlingCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -216,7 +216,7 @@ TEST(CriticScoreTest, VelocityDeadbandCriticScoresDiffDriveAndOmniAtHigherPower)
     params.VelocityDeadbandCritic.enabled = true;
     params.VelocityDeadbandCritic.cost_power = 2;
     params.VelocityDeadbandCritic.deadband_velocities = {0.2, 0.2, 0.2};
-    TestMapView map_view;
+    TestWorldView world_view;
     VelocityDeadbandCritic critic;
     critic.initialize(params);
 
@@ -224,14 +224,14 @@ TEST(CriticScoreTest, VelocityDeadbandCriticScoresDiffDriveAndOmniAtHigherPower)
     differential_drive.state.vx.fill(0.05f);
     differential_drive.state.vy.fill(0.05f);
     differential_drive.state.wz.fill(0.05f);
-    critic.score(differential_drive.data, map_view);
+    critic.score(differential_drive.data, world_view);
 
     CriticTestData omni_drive;
     omni_drive.data.motion_model = std::make_shared<OmniMotionModel>();
     omni_drive.state.vx.fill(0.05f);
     omni_drive.state.vy.fill(0.05f);
     omni_drive.state.wz.fill(0.05f);
-    critic.score(omni_drive.data, map_view);
+    critic.score(omni_drive.data, world_view);
 
     expectPositiveCosts(differential_drive);
     expectPositiveCosts(omni_drive);
@@ -247,18 +247,18 @@ TEST(CriticScoreTest, VelocityDeadbandCriticUsesLinearCostAtPowerOne) {
     CriticTestData fixture;
     fixture.state.vx.fill(0.05f);
     fixture.state.wz.fill(0.05f);
-    TestMapView map_view;
+    TestWorldView world_view;
     VelocityDeadbandCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
 
 TEST(CriticScoreTest, GoalCriticsUseLocalPathLengthToSwitch) {
     finenav_mppi_controller::Params params;
-    TestMapView map_view;
+    TestWorldView world_view;
     GoalCritic goal_critic;
     GoalAngleCritic goal_angle_critic;
     goal_critic.initialize(params);
@@ -268,8 +268,8 @@ TEST(CriticScoreTest, GoalCriticsUseLocalPathLengthToSwitch) {
     near_goal.state.pose.pose.position.x = -2.0;
     near_goal.state.local_path_length = 0.5F;
     near_goal.trajectories.yaws.fill(static_cast<float>(M_PI_2));
-    goal_critic.score(near_goal.data, map_view);
-    goal_angle_critic.score(near_goal.data, map_view);
+    goal_critic.score(near_goal.data, world_view);
+    goal_angle_critic.score(near_goal.data, world_view);
 
     expectPositiveCosts(near_goal);
 
@@ -277,8 +277,8 @@ TEST(CriticScoreTest, GoalCriticsUseLocalPathLengthToSwitch) {
     far_goal.state.pose.pose.position.x = 0.9;
     far_goal.state.local_path_length = 0.51F;
     far_goal.trajectories.yaws.fill(static_cast<float>(M_PI_2));
-    goal_critic.score(far_goal.data, map_view);
-    goal_angle_critic.score(far_goal.data, map_view);
+    goal_critic.score(far_goal.data, world_view);
+    goal_angle_critic.score(far_goal.data, world_view);
 
     EXPECT_EQ(far_goal.costs(0), 0.0f);
     EXPECT_EQ(far_goal.costs(1), 0.0f);
@@ -293,11 +293,11 @@ TEST(CriticScoreTest, PathFollowCriticScoresEndpointDistance) {
     fixture.setAllPathPointsValid();
     fixture.data.furthest_reached_path_point = 1;
     fixture.setAllTrajectoryY(0.3f);
-    TestMapView map_view;
+    TestWorldView world_view;
     PathFollowCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -312,11 +312,11 @@ TEST(CriticScoreTest, PathAngleCriticScoresHeadingError) {
     fixture.state.local_path_length = 0.5F;
     fixture.path.y(2) = 1.0f;
     fixture.data.furthest_reached_path_point = 1;
-    TestMapView map_view;
+    TestWorldView world_view;
     PathAngleCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -332,11 +332,11 @@ TEST(CriticScoreTest, PathAlignCriticScoresLateralDeviation) {
     fixture.setAllPathPointsValid();
     fixture.setAllTrajectoryY(0.2f);
     fixture.setTrajectoryX(0.0f, 0.05f);
-    TestMapView map_view;
+    TestWorldView world_view;
     PathAlignCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
 }
@@ -354,11 +354,11 @@ TEST(CriticScoreTest, PathAlignCriticKeepsCachedPathPointBetweenSparsePathSample
     fixture.trajectories.x.col(1).setConstant(0.38f);
     fixture.trajectories.x.col(2).setConstant(0.39f);
     fixture.trajectories.x.col(3).setConstant(0.39f);
-    TestMapView map_view;
+    TestWorldView world_view;
     PathAlignCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     constexpr float expected_cost = 14.0f * (0.02f + 0.01f + 0.01f) / 3.0f;
     EXPECT_NEAR(fixture.costs(0), expected_cost, 1.0e-5f);
@@ -368,30 +368,30 @@ TEST(CriticScoreTest, PathAlignCriticKeepsCachedPathPointBetweenSparsePathSample
 TEST(CriticScoreTest, CostCriticLeavesFreeSpaceCostsAtZero) {
     finenav_mppi_controller::Params params;
     CriticTestData fixture;
-    TestMapView map_view;
+    TestWorldView world_view;
     CostCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     EXPECT_EQ(fixture.costs(0), 0.0f);
     EXPECT_EQ(fixture.costs(1), 0.0f);
     EXPECT_FALSE(fixture.data.fail_flag);
-    EXPECT_GT(map_view.cost_queries, 0u);
+    EXPECT_GT(world_view.cost_queries, 0u);
 }
 
 TEST(CriticScoreTest, CostCriticMarksFailureWhenAllTrajectoriesCollide) {
     finenav_mppi_controller::Params params;
     CriticTestData fixture;
-    TestMapView map_view;
-    map_view.cost = 254;
-    map_view.collision = true;
+    TestWorldView world_view;
+    world_view.cost = 254;
+    world_view.collision = true;
     mppi::CriticCostBreakdown breakdown;
     fixture.data.critic_cost_breakdown = &breakdown;
     CostCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     expectPositiveCosts(fixture);
     EXPECT_TRUE(fixture.data.fail_flag);
@@ -411,15 +411,15 @@ TEST(CriticScoreTest, CostCriticKeepsPlanningWhenOneTrajectoryIsFree) {
     fixture.trajectories.x(1, 1) = 1.0f;
     fixture.trajectories.x(1, 2) = 1.0f;
     fixture.trajectories.x(1, 3) = 1.0f;
-    TestMapView map_view;
-    map_view.cost = 254;
-    map_view.collide_when_x_negative = true;
+    TestWorldView world_view;
+    world_view.cost = 254;
+    world_view.collide_when_x_negative = true;
     mppi::CriticCostBreakdown breakdown;
     fixture.data.critic_cost_breakdown = &breakdown;
     CostCritic critic;
     critic.initialize(params);
 
-    critic.score(fixture.data, map_view);
+    critic.score(fixture.data, world_view);
 
     EXPECT_FALSE(fixture.data.fail_flag);
     EXPECT_GT(fixture.costs(0), fixture.costs(1));

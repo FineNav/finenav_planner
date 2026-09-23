@@ -17,7 +17,7 @@
 
 namespace {
 
-class FreeSpaceMap final : public nav2_mppi_controller::IMapView {
+class FreeSpaceMap final : public nav2_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 

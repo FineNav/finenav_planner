@@ -37,9 +37,9 @@ constexpr unsigned int kPathPoints = 100;
 
 enum class Scenario { Open, Inflated, Mixed };
 
-class ScenarioMapView final : public nav2_mppi_controller::IMapView {
+class ScenarioWorldView final : public nav2_mppi_controller::IWorldView {
   public:
-    explicit ScenarioMapView(Scenario scenario) : scenario_(scenario) {}
+    explicit ScenarioWorldView(Scenario scenario) : scenario_(scenario) {}
 
     bool isTrackingUnknown() const override { return false; }
 
@@ -75,12 +75,12 @@ struct BenchmarkRun {
 class BenchmarkOptimizer final : public mppi::Optimizer {
   public:
     BenchmarkRun runOnce(const geometry_msgs::msg::PoseStamped& pose, const geometry_msgs::msg::Twist& speed,
-                         const nav_msgs::msg::Path& path, const nav2_mppi_controller::IMapView& map_view) {
+                         const nav_msgs::msg::Path& path, const nav2_mppi_controller::IWorldView& world_view) {
         prepare(pose, speed, path);
         std::size_t attempts = 0;
         do {
             ++attempts;
-            optimize(map_view);
+            optimize(world_view);
         } while (fallback(critics_data_.fail_flag));
         return {finalizeControlSequence(), attempts - 1};
     }
@@ -223,14 +223,14 @@ void runScenario(benchmark::State& state, Scenario scenario, unsigned int batch_
     const auto pose = makePose();
     const auto speed = makeSpeed();
     const auto path = makePath();
-    const ScenarioMapView map_view(scenario);
+    const ScenarioWorldView world_view(scenario);
 
-    auto warmup = optimizer.runOnce(pose, speed, path, map_view);
+    auto warmup = optimizer.runOnce(pose, speed, path, world_view);
     benchmark::DoNotOptimize(warmup.result);
 
     std::optional<BenchmarkRun> last_run;
     for (auto _ : state) {
-        last_run.emplace(optimizer.runOnce(pose, speed, path, map_view));
+        last_run.emplace(optimizer.runOnce(pose, speed, path, world_view));
         benchmark::DoNotOptimize(last_run->result);
     }
 
