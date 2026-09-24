@@ -31,7 +31,7 @@ class DeterministicWorldView final : public nav2_mppi_controller::IWorldView {
 
     bool isCollision(float x, float, float) const override { return x < -0.5f; }
 
-    int getCost(float x, float) const override {
+    int getCost(float x, float, float) const override {
         const int query = query_count.fetch_add(1, std::memory_order_relaxed);
         if (throw_after >= 0 && query >= throw_after) {
             throw std::runtime_error("deterministic map failure");
@@ -58,7 +58,7 @@ class ConcurrentAccessWorldView final : public nav2_mppi_controller::IWorldView 
 
     bool isCollision(float, float, float) const override { return false; }
 
-    int getCost(float, float) const override {
+    int getCost(float, float, float) const override {
         const int current = active_calls_.fetch_add(1, std::memory_order_relaxed) + 1;
         int observed = max_active_calls_.load(std::memory_order_relaxed);
         while (current > observed &&
@@ -83,7 +83,7 @@ class CountingWorkloadWorldView final : public nav2_mppi_controller::IWorldView 
 
     bool isTrackingUnknown() const override { return false; }
 
-    int getCost(float x, float) const override {
+    int getCost(float x, float, float) const override {
         const std::size_t trajectory = trajectoryIndex(x);
         if (trajectory >= max_trajectories) {
             return 0;

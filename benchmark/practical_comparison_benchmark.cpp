@@ -43,7 +43,7 @@ class ScenarioWorldView final : public nav2_mppi_controller::IWorldView {
 
     bool isTrackingUnknown() const override { return false; }
 
-    int getCost(float x, float y) const override {
+    int getCost(float x, float y, float) const override {
         if (scenario_ == Scenario::Open) {
             return 0;
         }

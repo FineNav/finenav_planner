@@ -76,6 +76,8 @@ class Optimizer {
     */
     Optimizer() = default;
 
+    void setLogger(const rclcpp::Logger& logger) { logger_ = logger; }
+
     /**
    * @brief Destructor for mppi::Optimizer
    */
@@ -100,7 +102,7 @@ class Optimizer {
 
         reset();
 
-        std::cout << "[nav2_mppi_controller] Optimizing initialized" << std::endl;
+        RCLCPP_INFO(logger_, "MPPI optimizer initialized");
     }
 
     /**
@@ -137,7 +139,7 @@ class Optimizer {
 
         setMotionModel(p.motion_model);
 
-        std::cout << "[nav2_mppi_controller] Optimizing param prepared" << std::endl;
+        RCLCPP_INFO(logger_, "MPPI optimizer parameters prepared");
     }
 
     /**
@@ -289,6 +291,8 @@ class Optimizer {
             }
         }
     }
+
+    rclcpp::Logger logger_{rclcpp::get_logger("MPPIController")};
 
     /**
    * @brief updates generated trajectories with noised trajectories

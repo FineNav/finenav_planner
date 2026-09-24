@@ -23,7 +23,7 @@ class FreeSpaceMap final : public nav2_mppi_controller::IWorldView {
 
     bool isCollision(float, float, float) const override { return false; }
 
-    int getCost(float, float) const override { return 0; }
+    int getCost(float, float, float) const override { return 0; }
 };
 
 finenav_mppi_controller::Params makeParams() {

@@ -144,7 +144,8 @@ void CostCritic::score(CriticData& data, const IWorldView& world_view) {
         for (Eigen::Index j = 0; j < traj_len; ++j) {
             // The center-point cost does not use orientation and retains the
             // detailed cost value that a footprint collision check would mask.
-            const float pose_cost = static_cast<float>(world_view.getCost(traj.x(i, j), traj.y(i, j)));
+            const float pose_cost =
+                static_cast<float>(world_view.getCost(traj.x(i, j), traj.y(i, j), traj.yaws(i, j)));
             // In free space.
             if (pose_cost < 1.0f) {
                 continue;

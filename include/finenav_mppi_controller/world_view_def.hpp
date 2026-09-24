@@ -29,7 +29,7 @@ class IWorldView {
     virtual bool isCollision(float x, float y, float theta) const = 0;
 
     // 获取地图索引处的代价值（根据项目需要可改为返回 unsigned char 等）
-    virtual int getCost(float x, float y) const = 0;
+    virtual int getCost(float x, float y, float theta) const = 0;
 
     // Optional batch score supplied by a WorldView; return true when costs were changed.
     virtual bool score(mppi::CriticData&) const { return false; }

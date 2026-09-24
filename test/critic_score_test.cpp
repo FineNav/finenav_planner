@@ -35,7 +35,7 @@ class TestWorldView final : public nav2_mppi_controller::IWorldView {
 
     bool isCollision(float x, float, float) const override { return collide_when_x_negative ? x < 0.0f : collision; }
 
-    int getCost(float x, float y) const override {
+    int getCost(float x, float y, float) const override {
         ++cost_queries;
         last_cost_x = x;
         last_cost_y = y;

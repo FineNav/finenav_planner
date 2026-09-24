@@ -35,7 +35,7 @@ class BenchmarkWorldView final : public nav2_mppi_controller::IWorldView {
 
     bool isTrackingUnknown() const override { return false; }
 
-    int getCost(float x, float y) const override {
+    int getCost(float x, float y, float) const override {
         const float oscillation = std::abs(std::sin(1.7F * x + 0.3F * y)) * 80.0F;
         return static_cast<int>(std::clamp(20.0F + oscillation + std::abs(y) * 120.0F, 1.0F, 220.0F));
     }

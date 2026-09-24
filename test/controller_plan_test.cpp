@@ -27,7 +27,7 @@ class TestWorldView final : public IWorldView {
 
     bool isCollision(float, float, float) const override { return false; }
 
-    int getCost(float, float) const override {
+    int getCost(float, float, float) const override {
         ++cost_queries_;
         return 0;
     }
@@ -44,7 +44,7 @@ class ConcurrentWorldView final : public IWorldView {
 
     bool isCollision(float, float, float) const override { return false; }
 
-    int getCost(float, float) const override {
+    int getCost(float, float, float) const override {
         const int active = active_cost_queries_.fetch_add(1) + 1;
         int observed = max_concurrent_cost_queries_.load();
         while (active > observed && !max_concurrent_cost_queries_.compare_exchange_weak(observed, active)) {}
