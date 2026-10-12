@@ -8,7 +8,7 @@
 // Tests are organised in three groups:
 //   1. Core algorithm correctness (via lambda maps, no FineNav deps)
 //   2. Edge cases and search limits
-//   3. AstarPathSearch integration (IMapView + planner config)
+//   3. AstarPathSearch integration (IWorldView + planner config)
 // =============================================================
 
 #include <gtest/gtest.h>
@@ -224,13 +224,13 @@ TEST(AStarAlgorithm3D, PathLength_FaceNeighbours)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Group 4: AstarPathSearch integration (IMapView + planner)
+// Group 4: AstarPathSearch integration (IWorldView + planner)
 // ─────────────────────────────────────────────────────────────────────────
 
-// Minimal IMapView implementation backed by GridMap
-class TestMapView : public finenav::AstarPathSearch::IMapView {
+// Minimal IWorldView implementation backed by GridMap
+class TestWorldView : public finenav::AstarPathSearch::IWorldView {
 public:
-    TestMapView(const astar::GridMap& g, double step_size)
+    TestWorldView(const astar::GridMap& g, double step_size)
         : grid_(g), step_(step_size) {}
 
     bool isWalkable(const finenav::Position3D& p) const override {
@@ -299,7 +299,7 @@ inline AstarTestCtx makeCtx(double sx, double sy, double gx, double gy)
 TEST(AstarPathSearch, PlanSucceeds_OpenGrid)
 {
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 5.5, 5.5), view);
@@ -311,7 +311,7 @@ TEST(AstarPathSearch, PlanFails_GoalBlocked)
 {
     astar::GridMap grid(10, 10);
     grid.setObstacle(5, 5, true);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 5.5, 5.5), view);
@@ -321,7 +321,7 @@ TEST(AstarPathSearch, PlanFails_GoalBlocked)
 TEST(AstarPathSearch, OutputPoses_AreWorldCoordinates)
 {
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 3.5, 0.5), view);

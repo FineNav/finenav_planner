@@ -54,10 +54,10 @@ private:
     static inline int counter_ = 0;
 };
 
-// ── Test map view (same adaptor pattern as bfs_test.cpp) ────────────────
-class TestMapView : public finenav::IRouteMapView {
+// ── Test world view (same adaptor pattern as bfs_test.cpp) ────────────────
+class TestWorldView : public finenav::IRouteWorldView {
 public:
-    TestMapView(const astar::GridMap& g, double step_size,
+    TestWorldView(const astar::GridMap& g, double step_size,
                 std::optional<route::Graph> graph = std::nullopt)
         : grid_(g), step_(step_size), graph_(std::move(graph)) {}
 
@@ -294,7 +294,7 @@ TEST(RoutePathSearch, ConfigureFails_GracefullyOnMissingFile)
 {
     auto planner = makePlanner();
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
 
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 5.5, 0.5), view).has_value());
 }
@@ -304,7 +304,7 @@ TEST(RoutePathSearch, ConfigureFails_GracefullyOnMalformedJson)
     TempFile bad("{ this is not valid GeoJSON ]");
     auto planner = makePlanner();
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
 
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 5.5, 0.5), view).has_value());
 }
@@ -313,7 +313,7 @@ TEST(RoutePathSearch, PlanFails_WhenGraphFileEmpty)
 {
     auto planner = makePlanner();
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
 
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 5.5, 0.5), view).has_value());
 }
@@ -324,7 +324,7 @@ TEST(RoutePathSearch, ConfigureSucceeds_LoadsValidGraph)
     auto planner = makePlanner();
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     // A loaded, non-empty graph must let plan() proceed past the
     // "no graph cached" early-out.
@@ -344,7 +344,7 @@ TEST(RoutePathSearch, PlanSucceeds_LinearGraph_EndpointsNearRobotAndGoal)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -375,7 +375,7 @@ TEST(RoutePathSearch, PlanFails_DisconnectedGraph_NoRouteBetweenComponents)
     auto planner = makePlanner();
     auto g = loadGraph(graph.path());
     astar::GridMap grid(40, 10);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     // Start snaps into the {0,1} component, goal into the {2,3} component —
     // Dijkstra on the graph must find no path and return nullopt.
@@ -388,7 +388,7 @@ TEST(RoutePathSearch, PlanPrefersLowerCost_OverFixedExpensiveDirectEdge)
     auto planner = makePlanner(0.0);  // node-centres only
     auto g = loadGraph(graph.path());
     astar::GridMap grid(20, 20);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 10.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -426,7 +426,7 @@ TEST(RoutePathSearch, Plan_SingleNodeGraph_StartEqualsGoal_ConnectorsBothSides)
     auto planner = makePlanner();
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(5.6, 5.6, 5.4, 5.4), view);
     ASSERT_TRUE(result.has_value());
@@ -460,7 +460,7 @@ TEST(RoutePathSearch, Plan_Densification_SpacingMatchesPathDensity)
     auto planner = makePlanner(kDensity);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -487,7 +487,7 @@ TEST(RoutePathSearch, Plan_ZeroDensity_IncludesNodeCentresAndConnectors)
     auto planner = makePlanner(0.0);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -519,7 +519,7 @@ TEST(RoutePathSearch, Plan_OutputPoses_HaveValidOrientation)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -538,7 +538,7 @@ TEST(RoutePathSearch, Plan_TotalLength_CoversRobotToGoal)
     auto planner = makePlanner(0.25);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -569,7 +569,7 @@ TEST(RoutePathSearch, Plan_SnapsToReachableNode_IncludesConnectorPath)
     // Open N8-connected grid except node P's cell (2,2), which is walled in.
     astar::GridMap grid(12, 12);
     enclose(grid, 2, 2);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.6, 0.6, 0.7, 0.7), view);
     ASSERT_TRUE(result.has_value());
@@ -612,7 +612,7 @@ TEST(RoutePathSearch, PlanFails_WhenNoNodeIsReachableFromRobot)
     // can never find a cell containing a graph node.
     astar::GridMap grid(12, 12);
     enclose(grid, 5, 5);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 0.5, 0.5), view).has_value());
 }
@@ -625,7 +625,7 @@ TEST(RoutePathSearch, PlanFails_WhenStartCellItselfIsBlocked)
 
     astar::GridMap grid(12, 12);
     grid.setObstacle(0, 0, true);   // robot starts inside an obstacle cell
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view).has_value());
 }
@@ -643,7 +643,7 @@ TEST(RoutePathSearch, Plan_SnapsToPathPoint_WhenRobotNearPathMidpoint)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     // Robot at (5, 1), goal at (5.5, 0.5) — both near the path midpoint
     auto result = planner.plan(makeCtx(5.0, 1.0, 5.5, 0.5), view);
@@ -684,7 +684,7 @@ TEST(RoutePathSearch, Plan_ShortConnector_WhenRobotNearDensePathFarFromNodes)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(5.0, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -723,7 +723,7 @@ TEST(RoutePathSearch, Plan_ThreeNodeChain_RobotEntersAtMidPath_GoesForward)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(22, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(8.0, 2.0, 18.0, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -778,7 +778,7 @@ TEST(RoutePathSearch, Plan_SnapsToNode_WhenNodeIsCloserThanAnyPathPoint)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(0.5, 0.5, 9.5, 0.5), view);
     ASSERT_TRUE(result.has_value());
@@ -801,7 +801,7 @@ TEST(RoutePathSearch, Plan_DiagonalDenseEdge_SnapsToPathPoint)
     auto planner = makePlanner(0.5);
     auto g = loadGraph(graph.path());
     astar::GridMap grid(12, 12);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     auto result = planner.plan(makeCtx(5.5, 4.5, 9.5, 9.5), view);
     ASSERT_TRUE(result.has_value());
@@ -838,7 +838,7 @@ TEST(RoutePathSearch, PlanFails_WhenNoGraphPointIsReachable)
     for (int x = 0; x < 11; ++x)
         for (int y = 0; y < 2; ++y)
             grid.setObstacle(x, y, true);
-    TestMapView view(grid, 1.0, std::move(g));
+    TestWorldView view(grid, 1.0, std::move(g));
 
     EXPECT_FALSE(planner.plan(makeCtx(5.0, 5.0, 10.0, 5.0), view).has_value());
 }

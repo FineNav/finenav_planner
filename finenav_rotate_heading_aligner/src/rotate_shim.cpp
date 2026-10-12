@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "finenav_core/common/algo_register_macros.hpp"
+#include "finenav_core/algo_register_macros.hpp"
 
 namespace finenav {
 

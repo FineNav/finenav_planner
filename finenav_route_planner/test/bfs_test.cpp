@@ -186,9 +186,9 @@ TEST(BfsAlgorithm2D, PrefersLowerCostPath_WeightedGrid)
 
 // ── BfsPathSearch integration tests ─────────────────────────────────────
 
-class TestMapView : public finenav::BfsPathSearch::IMapView {
+class TestWorldView : public finenav::BfsPathSearch::IWorldView {
 public:
-    TestMapView(const astar::GridMap& g, double step_size)
+    TestWorldView(const astar::GridMap& g, double step_size)
         : grid_(g), step_(step_size) {}
 
     bool isWalkable(const finenav::Position3D& p) const override {
@@ -255,7 +255,7 @@ inline BfsTestCtx makeCtx(double sx, double sy, double gx, double gy)
 TEST(BfsPathSearch, PlanSucceeds_OpenGrid)
 {
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
     auto result = planner.plan(makeCtx(0.5, 0.5, 5.5, 5.5), view);
     ASSERT_TRUE(result.has_value());
@@ -266,7 +266,7 @@ TEST(BfsPathSearch, PlanFails_GoalBlocked)
 {
     astar::GridMap grid(10, 10);
     grid.setObstacle(5, 5, true);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 5.5, 5.5), view).has_value());
 }
@@ -274,7 +274,7 @@ TEST(BfsPathSearch, PlanFails_GoalBlocked)
 TEST(BfsPathSearch, PlanFails_InvalidStepSize)
 {
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 0.0);
+    TestWorldView view(grid, 0.0);
     auto planner = makePlanner();
     EXPECT_FALSE(planner.plan(makeCtx(0.5, 0.5, 5.5, 5.5), view).has_value());
 }
@@ -282,7 +282,7 @@ TEST(BfsPathSearch, PlanFails_InvalidStepSize)
 TEST(BfsPathSearch, OutputPoses_AreWorldCoordinates)
 {
     astar::GridMap grid(10, 10);
-    TestMapView view(grid, 1.0);
+    TestWorldView view(grid, 1.0);
     auto planner = makePlanner();
     auto result = planner.plan(makeCtx(0.5, 0.5, 3.5, 0.5), view);
     ASSERT_TRUE(result.has_value());

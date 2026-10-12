@@ -1,7 +1,7 @@
 # astar.yaml - AstarPathSearch 参数定义
 #
 # 栅格步长（step size）不在这里定义。
-# 它是地图的属性，由 IMapView::getStepSize() 在规划时提供。
+# 它是地图的属性，由 IWorldView::getStepSize() 在规划时提供。
 astar_planner:
   connectivity:
     type: string

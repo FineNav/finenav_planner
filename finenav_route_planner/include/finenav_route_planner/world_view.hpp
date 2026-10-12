@@ -2,14 +2,14 @@
 // IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
 // All rights reserved.
 #pragma once
-#include "finenav_core/common/geometry_types.hpp"   // Position3D
+#include "finenav_common/geometry_types.hpp"   // Position3D
 
 namespace astar {
-using finenav::core::Position3D;
-using finenav::core::Region3D;
+using finenav::common::Position3D;
+using finenav::common::Region3D;
 
 // =============================================================
-// IMapView  —  user-facing world-coordinate map interface
+// IWorldView  —  user-facing world-coordinate worldview interface
 //
 // Single unified interface for both AstarPathSearch and BfsPathSearch.
 // BFS planners may ignore getCost() (return 0.0 is fine).
@@ -36,18 +36,18 @@ using finenav::core::Region3D;
 // specify it.
 // =============================================================
 
-class IMapView {
+class IWorldView {
 public:
-    virtual ~IMapView() = default;
+    virtual ~IWorldView() = default;
 
     // ── world-coordinate queries ──────────────────────────────
     /// Can the robot pass through world point p?
-    virtual bool isWalkable(const finenav::core::Position3D& p) const = 0;
+    virtual bool isWalkable(const finenav::common::Position3D& p) const = 0;
 
     /// Extra traversal cost at p (must be >= 0).
     /// A* edge weight = step_cost * (1 + getCost(p)).
     /// Return 0.0 for a uniform-cost map (e.g. when used with BFS).
-    virtual double getCost(const finenav::core::Position3D& p) const = 0;
+    virtual double getCost(const finenav::common::Position3D& p) const = 0;
 
     // ── discretisation hint ───────────────────────────────────
     /// Distance in metres that the planner travels with each grid step.
@@ -55,4 +55,3 @@ public:
 };
 
 } // namespace astar
-

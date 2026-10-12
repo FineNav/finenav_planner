@@ -10,7 +10,7 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 
-#include "finenav_core/common/algo_register_macros.hpp"
+#include "finenav_core/algo_register_macros.hpp"
 
 namespace finenav {
 
@@ -29,9 +29,9 @@ void RoutePathSearch::configure(const ConfigType& params)
 
 RoutePathSearch::Result RoutePathSearch::plan(
     const Context&  ctx,
-    const IMapView& map_view)
+    const IWorldView& world_view)
 {
-    const auto* graph_ptr = map_view.getGraph();
+    const auto* graph_ptr = world_view.getGraph();
     if (!graph_ptr || graph_ptr->nodes.empty()) return std::nullopt;
     if (ctx.ref_traj.poses.empty()) return std::nullopt;
     const auto& orig_graph = *graph_ptr;
@@ -46,11 +46,11 @@ RoutePathSearch::Result RoutePathSearch::plan(
     start_pose.orientation.x = ctx.robot_state.pose.orientation.x;
     start_pose.orientation.y = ctx.robot_state.pose.orientation.y;
     start_pose.orientation.z = ctx.robot_state.pose.orientation.z;
-    const auto start_snap = findNearestGraphPoint(orig_graph, start_pose, map_view);
+    const auto start_snap = findNearestGraphPoint(orig_graph, start_pose, world_view);
     if (!start_snap.isNode() && !start_snap.isPath()) return std::nullopt;
 
     const auto goal_snap =
-        findNearestGraphPoint(orig_graph, ctx.ref_traj.poses.back(), map_view);
+        findNearestGraphPoint(orig_graph, ctx.ref_traj.poses.back(), world_view);
     if (!goal_snap.isNode() && !goal_snap.isPath()) return std::nullopt;
 
     // ── Build mutable working graph ──────────────────────────────────────
@@ -154,7 +154,7 @@ RoutePathSearch::Result RoutePathSearch::plan(
 // Using the real map means the connector is obstacle-aware: a point that can
 // only be reached by going through a wall will not be selected.
 //
-// Cell size = map_view.getStepSize() (map resolution) so the BFS is in the
+// Cell size = world_view.getStepSize() (map resolution) so the BFS is in the
 // same cell space as AstarPathSearch / BfsPathSearch.
 //
 // Returns a SnapResult with the entry info and the world-frame connector
@@ -173,9 +173,9 @@ struct PathPointInfo {
 RoutePathSearch::SnapResult RoutePathSearch::findNearestGraphPoint(
     const route::Graph&             graph,
     const geometry_msgs::msg::Pose& pose,
-    const IMapView&                 map_view) const
+    const IWorldView&                 world_view) const
 {
-    const double step = map_view.getStepSize();
+    const double step = world_view.getStepSize();
 
     auto toCell = [step](double x, double y) -> astar::Vec3 {
         return {
@@ -225,10 +225,10 @@ RoutePathSearch::SnapResult RoutePathSearch::findNearestGraphPoint(
         return c.z == 0 &&
                std::abs(c.x - origin.x) <= max_depth &&
                std::abs(c.y - origin.y) <= max_depth &&
-               map_view.isWalkable(cellCentre(c));
+               world_view.isWalkable(cellCentre(c));
     };
     auto get_cost = [&](const astar::Vec3& c) {
-        return map_view.getCost(cellCentre(c));
+        return world_view.getCost(cellCentre(c));
     };
     auto is_goal = [&](const astar::Vec3& c) {
         return cell_nodes.contains(c) || cell_path_pts.contains(c);

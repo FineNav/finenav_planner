@@ -4,17 +4,17 @@
 
 #pragma once
 
-#include "finenav_route_planner/imap_view.hpp"
+#include "finenav_route_planner/world_view.hpp"
 #include "finenav_route_planner/route/route_graph.hpp"
 
 namespace finenav {
 
-// MapView for RoutePathSearch: adds the topological route graph (non-map data,
+// WorldView for RoutePathSearch: adds the topological route graph (non-map data,
 // e.g. GeoJSON) on top of the occupancy-map queries inherited from
-// astar::IMapView (isWalkable / getCost / getStepSize).
-class IRouteMapView : public astar::IMapView {
+// astar::IWorldView (isWalkable / getCost / getStepSize).
+class IRouteWorldView : public astar::IWorldView {
 public:
-    virtual ~IRouteMapView() = default;
+    virtual ~IRouteWorldView() = default;
 
     /// The route graph (topological network), or nullptr when not yet loaded.
     virtual const route::Graph* getGraph() const = 0;

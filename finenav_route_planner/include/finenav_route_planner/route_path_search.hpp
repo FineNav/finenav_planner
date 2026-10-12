@@ -7,18 +7,18 @@
 #include <optional>
 #include <string>
 
-#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/plugin_planner.hpp"
 #include "finenav_route_planner/route_params.hpp"
 
 #include "finenav_route_planner/astar_algorithm.hpp"
-#include "finenav_route_planner/imap_view.hpp"
-#include "finenav_route_planner/route_imap_view.hpp"
+#include "finenav_route_planner/world_view.hpp"
+#include "finenav_route_planner/route_world_view.hpp"
 #include "finenav_route_planner/route/route_graph.hpp"
 #include "finenav_route_planner/route/route_search.hpp"
 
 namespace finenav {
-using finenav::core::Position3D;
-using finenav::core::Region3D;
+using finenav::common::Position3D;
+using finenav::common::Region3D;
 using finenav::core::IOProfile;
 using finenav::core::PlanningContext;
 using finenav::core::InputTrajectoryT;
@@ -30,7 +30,7 @@ using finenav::core::Trajectory;
 //
 // FineNav planner for topological-graph route planning.
 //
-// From the user's perspective this planner takes the same IMapView
+// From the user's perspective this planner takes the same IWorldView
 // as AstarPathSearch / BfsPathSearch.  The occupancy map is used to
 // guide obstacle-aware BFS when snapping the robot's current pose
 // and the goal pose to the nearest reachable route graph point
@@ -74,7 +74,7 @@ public:
     // Same map interface as AstarPathSearch and BfsPathSearch.
     // isWalkable / getCost are used during the BFS that snaps poses to
     // the nearest route node so that the connector path avoids obstacles.
-    using IMapView = finenav::IRouteMapView;
+    using IWorldView = finenav::IRouteWorldView;
 
     using Context = PlanningContext<RoutePathSearch>;
     using Result  = std::optional<OutputTrajectoryT<RoutePathSearch>>;
@@ -83,7 +83,7 @@ public:
     void configure(const ConfigType& params);
     void reset() {}
 
-    Result plan(const Context& ctx, const IMapView& map_view);
+    Result plan(const Context& ctx, const IWorldView& world_view);
 
     // Result of snapping a world pose to the nearest reachable route graph point
     // (either a node or an intermediate point on an edge polyline).
@@ -116,7 +116,7 @@ private:
     SnapResult findNearestGraphPoint(
         const route::Graph&             graph,
         const geometry_msgs::msg::Pose& pose,
-        const IMapView&                 map_view) const;
+        const IWorldView&               world_view) const;
 
     // Insert a temporary virtual node into a mutable graph at the given
     // world position.  Returns the index of the new node.

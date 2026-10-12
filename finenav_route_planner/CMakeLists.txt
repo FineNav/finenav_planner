@@ -12,6 +12,7 @@ find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 include_directories(include ${OpenCV_INCLUDE_DIRS})
 ament_auto_find_build_dependencies()
+find_package(generate_parameter_library REQUIRED)
 
 # ── parameter libraries (generated from YAML) ──────────────────────────────
 generate_parameter_library(astar_params  astar.yaml)
@@ -48,7 +49,7 @@ if (BUILD_TESTING)
         src/astar_algorithm.cpp
         src/astar_path_search.cpp
     )
-    ament_target_dependencies(astar_test finenav_core finenav_util finenav_interfaces rclcpp)
+    ament_target_dependencies(astar_test finenav_core finenav_common finenav_interfaces rclcpp)
     target_include_directories(astar_test PRIVATE test)
     target_link_libraries(astar_test astar_params)
 
@@ -57,7 +58,7 @@ if (BUILD_TESTING)
         src/astar_algorithm.cpp      # BFS reuses AStarAlgorithm
         src/bfs_path_search.cpp
     )
-    ament_target_dependencies(bfs_test finenav_core finenav_util finenav_interfaces)
+    ament_target_dependencies(bfs_test finenav_core finenav_common finenav_interfaces)
     target_include_directories(bfs_test PRIVATE test)
     target_link_libraries(bfs_test bfs_params)
 
@@ -68,7 +69,7 @@ if (BUILD_TESTING)
         src/route/route_graph.cpp
         src/route/route_search.cpp
     )
-    ament_target_dependencies(route_test finenav_core finenav_util finenav_interfaces geometry_msgs std_msgs)
+    ament_target_dependencies(route_test finenav_core finenav_common finenav_interfaces geometry_msgs std_msgs)
     target_include_directories(route_test PRIVATE test)
     target_link_libraries(route_test route_params)
 endif ()

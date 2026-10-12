@@ -17,8 +17,8 @@ namespace astar {
 // Cells are indexed by integer (x, y) coordinates.
 //
 // This class has NO FineNav / ROS dependencies and does NOT
-// implement AstarPathSearch::IMapView directly.  In main.cpp
-// (or any test), wrap it in a concrete IMapView subclass that
+// implement AstarPathSearch::IWorldView directly.  In main.cpp
+// (or any test), wrap it in a concrete IWorldView subclass that
 // calls the cell-query methods below after converting its
 // world-coordinate input with the planner's own resolution.
 // =============================================================
@@ -42,7 +42,7 @@ public:
             costs_[idx(x, y)] = cost;
     }
 
-    // ── cell-space queries (used by a wrapping IMapView) ──────
+    // ── cell-space queries (used by a wrapping IWorldView) ──────
 
     bool isWalkableCell(int x, int y) const {
         return isValid(x, y) && costs_[idx(x, y)] < INF_COST;

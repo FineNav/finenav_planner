@@ -24,10 +24,8 @@
     <depend>nav_msgs</depend>
     <depend>geometry_msgs</depend>
     <depend>rclcpp</depend>
-    <depend>finenav_util</depend>
+    <depend>finenav_common</depend>
     <depend>finenav_core</depend>
-    <depend>finenav_map_occupancy_grid_2d</depend>
-    <depend>finenav_collision_model</depend>
     <depend>generate_parameter_library</depend>
     <depend>opencv</depend>
     <depend>nlohmann-json-dev</depend>

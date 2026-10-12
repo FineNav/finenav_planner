@@ -11,8 +11,7 @@
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
-#include "finenav_core/plan/planner_concept.hpp"
-#include "finenav_core/plan/trajectory.hpp"
+#include "finenav_core/plugin_planner.hpp"
 #include "finenav_rotate_shim/finenav_rotate_shim_params.hpp"
 
 namespace finenav {

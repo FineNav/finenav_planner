@@ -6,15 +6,15 @@
 
 #include <optional>
 
-#include "finenav_core/plan/planner_concept.hpp"
+#include "finenav_core/plugin_planner.hpp"
 #include "finenav_route_planner/bfs_params.hpp"
 
 #include "finenav_route_planner/astar_algorithm.hpp"   // BFS is A* with Heuristic::Zero
-#include "finenav_route_planner/imap_view.hpp"
+#include "finenav_route_planner/world_view.hpp"
 
 namespace finenav {
-using finenav::core::Position3D;
-using finenav::core::Region3D;
+using finenav::common::Position3D;
+using finenav::common::Region3D;
 using finenav::core::IOProfile;
 using finenav::core::PlanningContext;
 using finenav::core::InputTrajectoryT;
@@ -34,7 +34,7 @@ using finenav::core::Trajectory;
 // finds the fewest-hops path.  On a weighted map it finds the
 // minimum traversal-cost path (same as Dijkstra).
 //
-// getCost() IS called, so map views should return meaningful values.
+// getCost() IS called, so world views should return meaningful values.
 // =============================================================
 
 class BfsPathSearch {
@@ -56,7 +56,7 @@ public:
         .time  = false
     };
 
-    using IMapView = astar::IMapView;
+    using IWorldView = astar::IWorldView;
 
     using Context = PlanningContext<BfsPathSearch>;
     using Result  = std::optional<OutputTrajectoryT<BfsPathSearch>>;
@@ -64,7 +64,7 @@ public:
     void configure(const ConfigType& params);
     void reset() {}
 
-    Result plan(const Context& ctx, const IMapView& map_view);
+    Result plan(const Context& ctx, const IWorldView& world_view);
 
 private:
     // All fields mirror AstarPathSearch except heuristic_ is always Zero.

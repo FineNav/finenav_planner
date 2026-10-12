@@ -7,10 +7,10 @@
 #include <cmath>
 #include <geometry_msgs/msg/pose.hpp>
 
-#include "finenav_core/common/algo_register_macros.hpp"
+#include "finenav_core/algo_register_macros.hpp"
 
-using finenav::core::Position3D;
-using finenav::core::Region3D;
+using finenav::common::Position3D;
+using finenav::common::Region3D;
 using finenav::core::IOProfile;
 using finenav::core::PlanningContext;
 using finenav::core::OutputTrajectoryT;
@@ -37,9 +37,9 @@ void AstarPathSearch::configure(const ConfigType& params)
 
 AstarPathSearch::Result AstarPathSearch::plan(
     const Context&  ctx,
-    const IMapView& map_view)
+    const IWorldView& world_view)
 {
-    const double step = map_view.getStepSize();
+    const double step = world_view.getStepSize();
 
     auto worldToCell = [step](double x, double y, double z) -> astar::Vec3 {
         return {
@@ -56,10 +56,10 @@ AstarPathSearch::Result AstarPathSearch::plan(
     };
 
     auto is_walkable = [&](const astar::Vec3& c) -> bool {
-        return map_view.isWalkable(cellCentre(c));
+        return world_view.isWalkable(cellCentre(c));
     };
     auto get_cost = [&](const astar::Vec3& c) -> double {
-        return map_view.getCost(cellCentre(c));
+        return world_view.getCost(cellCentre(c));
     };
 
     if (ctx.ref_traj.poses.empty()) return std::nullopt;

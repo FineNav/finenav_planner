@@ -6,12 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(ament_cmake REQUIRED)
 
-find_package(xtensor REQUIRED)
-find_package(xsimd REQUIRED)
-
 set(dependencies
   rclcpp
   geometry_msgs
+  finenav_common
   finenav_core
   generate_parameter_library
 )

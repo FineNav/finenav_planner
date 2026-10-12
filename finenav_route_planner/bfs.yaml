@@ -1,6 +1,6 @@
 # bfs.yaml - BfsPathSearch 参数定义
 #
-# 栅格步长由 IMapView::getStepSize() 在规划时提供。
+# 栅格步长由 IWorldView::getStepSize() 在规划时提供。
 bfs_planner:
   connectivity:
     type: string
