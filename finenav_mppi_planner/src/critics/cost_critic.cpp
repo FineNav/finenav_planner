@@ -44,7 +44,7 @@
 #endif
 
 namespace mppi::critics {
-using nav2_mppi_controller::IWorldView;
+using finenav_mppi_controller::IWorldView;
 
 CostCritic::CostCritic(CostCriticExecutionOptions options) : execution_options_(std::move(options)) {
     if (execution_options_.num_threads == 0U) {

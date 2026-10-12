@@ -153,7 +153,7 @@ class Optimizer {
     // geometry_msgs::msg::TwistStamped evalControl(
     OptimizationResult evalControl(const geometry_msgs::msg::PoseStamped& robot_pose,
                                    const geometry_msgs::msg::Twist& robot_speed, const nav_msgs::msg::Path& plan,
-                                   const nav2_mppi_controller::IWorldView& world_view) {
+                                   const finenav_mppi_controller::IWorldView& world_view) {
         prepare(robot_pose, robot_speed, plan);
 
         do {
@@ -224,7 +224,7 @@ class Optimizer {
    * @brief Main function to generate, score, and return trajectories
    */
 
-    void optimize(const nav2_mppi_controller::IWorldView& world_view) {
+    void optimize(const finenav_mppi_controller::IWorldView& world_view) {
         for (size_t i = 0; i < settings_.iteration_count; ++i) {
             generateNoisedTrajectories();
             critic_manager_.evalTrajectoriesScores(critics_data_, world_view);
@@ -310,7 +310,7 @@ class Optimizer {
    */
     void applyControlSequenceConstraints() {
         // Apply specialty vehicle constraints before the dynamic projection,
-        // matching Nav2's acceleration-aware control-sequence pipeline.
+        // matching the acceleration-aware control-sequence pipeline.
         motion_model_->applyConstraints(control_sequence_);
 
         float previous_vx = state_.speed.linear.x;

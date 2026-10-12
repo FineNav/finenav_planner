@@ -22,11 +22,11 @@ namespace finenav::viz {
 class FineNavVisualizer;
 }  // namespace finenav::viz
 
-namespace nav2_mppi_controller {
+namespace finenav_mppi_controller {
 
 class MPPIController {
 public:
-    using IWorldView = nav2_mppi_controller::IWorldView;
+    using IWorldView = finenav_mppi_controller::IWorldView;
     using Context = finenav::core::PlanningContext<MPPIController>;
     using ConfigType = finenav_mppi_controller::Params;
 
@@ -66,6 +66,6 @@ private:
     std::vector<std::unique_ptr<mppi::critics::CriticFunction>> critics_;
 };
 
-}  // namespace nav2_mppi_controller
+}  // namespace finenav_mppi_controller
 
 #endif  // FINENAV_MPPI_CONTROLLER_CONTROLLER_HPP_

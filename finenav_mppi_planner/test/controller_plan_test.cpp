@@ -18,7 +18,7 @@
 #include "finenav_mppi_controller/controller.hpp"
 #include "finenav_visualizer/finenav_visualizer.hpp"
 
-namespace nav2_mppi_controller {
+namespace finenav_mppi_controller {
 namespace {
 
 class TestWorldView final : public IWorldView {
@@ -324,4 +324,4 @@ TEST(ControllerPlanTest, RejectsInvalidAccelerationBounds) {
 }
 
 }  // namespace
-}  // namespace nav2_mppi_controller
+}  // namespace finenav_mppi_controller

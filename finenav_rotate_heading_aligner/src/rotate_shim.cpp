@@ -105,7 +105,7 @@ std::optional<Trajectory<RotateShim::OutputProfile>> RotateShim::plan(
 }
 
 // ==============================================================================
-// getSampledPathPt — 参照 Nav2 RotationShimController::getSampledPathPt
+// getSampledPathPt — 参照 RotationShimController 的 getSampledPathPt
 // ==============================================================================
 geometry_msgs::msg::Point RotateShim::getSampledPathPt(
     const std::vector<geometry_msgs::msg::Pose>& ref_poses,

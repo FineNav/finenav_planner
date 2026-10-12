@@ -29,7 +29,7 @@
 #include "finenav_mppi_controller/critics/path_follow_critic.hpp"
 
 namespace mppi::critics {
-using namespace nav2_mppi_controller;
+using namespace finenav_mppi_controller;
 
 void PathFollowCritic::initialize(const finenav_mppi_controller::Params& p) {
     logger_ = rclcpp::get_logger("PathFollowCritic");

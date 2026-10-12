@@ -25,7 +25,7 @@
 namespace mppi::critics {
 namespace {
 
-class DeterministicWorldView final : public nav2_mppi_controller::IWorldView {
+class DeterministicWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -52,7 +52,7 @@ class DeterministicWorldView final : public nav2_mppi_controller::IWorldView {
     int throw_after{-1};
 };
 
-class ConcurrentAccessWorldView final : public nav2_mppi_controller::IWorldView {
+class ConcurrentAccessWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -75,7 +75,7 @@ class ConcurrentAccessWorldView final : public nav2_mppi_controller::IWorldView 
     mutable std::atomic<int> max_active_calls_{0};
 };
 
-class CountingWorkloadWorldView final : public nav2_mppi_controller::IWorldView {
+class CountingWorkloadWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     static constexpr std::size_t max_trajectories = 3000U;
 

@@ -10,7 +10,7 @@
 
 #include "finenav_mppi_controller/critic_data.hpp"
 
-namespace nav2_mppi_controller {
+namespace finenav_mppi_controller {
 /**
      * @brief Read-only world view used by MPPI critics.
      *
@@ -34,6 +34,6 @@ class IWorldView {
     // Optional batch score supplied by a WorldView; return true when costs were changed.
     virtual bool score(mppi::CriticData&) const { return false; }
 };
-}  // namespace nav2_mppi_controller
+}  // namespace finenav_mppi_controller
 
 #endif

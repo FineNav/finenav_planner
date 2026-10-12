@@ -37,7 +37,7 @@ constexpr unsigned int kPathPoints = 100;
 
 enum class Scenario { Open, Inflated, Mixed };
 
-class ScenarioWorldView final : public nav2_mppi_controller::IWorldView {
+class ScenarioWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     explicit ScenarioWorldView(Scenario scenario) : scenario_(scenario) {}
 
@@ -75,7 +75,7 @@ struct BenchmarkRun {
 class BenchmarkOptimizer final : public mppi::Optimizer {
   public:
     BenchmarkRun runOnce(const geometry_msgs::msg::PoseStamped& pose, const geometry_msgs::msg::Twist& speed,
-                         const nav_msgs::msg::Path& path, const nav2_mppi_controller::IWorldView& world_view) {
+                         const nav_msgs::msg::Path& path, const finenav_mppi_controller::IWorldView& world_view) {
         prepare(pose, speed, path);
         std::size_t attempts = 0;
         do {

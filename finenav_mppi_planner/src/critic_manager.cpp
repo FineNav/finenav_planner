@@ -80,7 +80,7 @@ const char* criticName(const mppi::critics::CriticFunction& critic) {
 }  // namespace
 
 namespace mppi {
-using namespace nav2_mppi_controller;
+using namespace finenav_mppi_controller;
 
 void CriticManager::on_configure(std::vector<std::unique_ptr<critics::CriticFunction>>& critics,
                                  const finenav_mppi_controller::Params& params) {

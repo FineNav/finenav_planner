@@ -29,7 +29,7 @@
 #include "finenav_mppi_controller/critics/constraint_critic.hpp"
 
 namespace mppi::critics {
-using namespace nav2_mppi_controller;
+using namespace finenav_mppi_controller;
 
 void ConstraintCritic::initialize(const finenav_mppi_controller::Params& p) {
     logger_ = rclcpp::get_logger("ConstraintCritic");
@@ -63,8 +63,8 @@ void ConstraintCritic::score(CriticData& data, const IWorldView& world_view) {
     if (acker != nullptr) {
         auto& vx = data.state.vx;
         auto& wz = data.state.wz;
-        // Match Nav2's #5855 fix: keep the Ackermann radius ratio finite when
-        // angular velocity is zero or very small.
+        // 保持阿克曼转弯半径比例有限，避免角速度
+        // 为零或很小时出现除零。
         constexpr float epsilon = 1e-6F;
         const auto wz_safe = wz.abs().max(epsilon);
         const auto out_of_turning_rad_motion = (acker->getMinTurningRadius() - (vx.abs() / wz_safe)).max(0.0F);

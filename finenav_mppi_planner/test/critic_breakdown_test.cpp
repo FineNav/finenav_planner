@@ -24,7 +24,7 @@ static_assert(
     std::is_same_v<typename decltype(mppi::CriticCostBreakdown::contributions)::value_type, std::vector<float>>,
     "Diagnostic critic contributions must use STL-owned float storage");
 
-class EmptyWorldView : public nav2_mppi_controller::IWorldView {
+class EmptyWorldView : public finenav_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
@@ -48,7 +48,7 @@ class AddCritic final : public mppi::critics::CriticFunction {
 
     void initialize(const finenav_mppi_controller::Params&) override {}
 
-    void score(mppi::CriticData& data, const nav2_mppi_controller::IWorldView&) override {
+    void score(mppi::CriticData& data, const finenav_mppi_controller::IWorldView&) override {
         data.costs += mppi::models::Vector::Constant(data.costs.size(), amount_);
     }
 
@@ -60,7 +60,7 @@ class CollisionCritic final : public mppi::critics::CriticFunction {
   public:
     void initialize(const finenav_mppi_controller::Params&) override {}
 
-    void score(mppi::CriticData& data, const nav2_mppi_controller::IWorldView&) override {
+    void score(mppi::CriticData& data, const finenav_mppi_controller::IWorldView&) override {
         data.costs(0) = std::numeric_limits<float>::infinity();
     }
 };

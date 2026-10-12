@@ -86,7 +86,7 @@ class CriticManager {
     * @param CriticData Struct of necessary information to pass to the critic functions
     */
 
-    void evalTrajectoriesScores(CriticData& data, const nav2_mppi_controller::IWorldView& world_view) const;
+    void evalTrajectoriesScores(CriticData& data, const finenav_mppi_controller::IWorldView& world_view) const;
 
   protected:
     std::vector<std::unique_ptr<critics::CriticFunction>> critics_;

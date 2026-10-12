@@ -9,7 +9,7 @@ MPPI 以机器人当前状态和上一周期的控制序列为起点，叠加高
 - 运动模型：`DiffDrive` / `Omni` / `Ackermann`
 - 行为由可插拔的 critic 决定（避障、跟路径、朝向对齐、偏好前进等），每个可单独开关和调参
 - 实现 FineNav 的 `Planner` 概念：声明 `IWorldView` 读取地图，`plan(ctx, world_view)` 返回轨迹
-- 注册为 planner 插件 `nav2_mppi_controller::MPPIController`，参数命名空间 `finenav_mppi_controller`
+- 注册为 planner 插件 `finenav_mppi_controller::MPPIController`，参数命名空间 `finenav_mppi_controller`
 
 ## 参数
 

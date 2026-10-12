@@ -37,7 +37,6 @@
 #include <vector>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
-//#include "nav2_core/goal_checker.hpp"
 #include "finenav_mppi_controller/models/path.hpp"
 #include "finenav_mppi_controller/models/state.hpp"
 #include "finenav_mppi_controller/models/trajectories.hpp"

@@ -38,7 +38,7 @@
 #include "finenav_mppi_controller/optimizer.hpp"
 #include "finenav_mppi_controller/tools/trajectory_visualizer.hpp"
 
-namespace nav2_mppi_controller {
+namespace finenav_mppi_controller {
 
 namespace {
 template <typename DataPacketT>
@@ -188,6 +188,6 @@ void MPPIController::reset() {
     optimizer_.reset();
 }
 
-}  // namespace nav2_mppi_controller
+}  // namespace finenav_mppi_controller
 
-FINENAV_REGISTER_PLANNER(nav2_mppi_controller::MPPIController, finenav_mppi_controller)
+FINENAV_REGISTER_PLANNER(finenav_mppi_controller::MPPIController, finenav_mppi_controller)

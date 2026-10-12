@@ -31,13 +31,13 @@ foreach(pkg IN LISTS dependencies_pkgs)
 endforeach()
 
 
-# ↓ 覆盖 nav2_package() 设置
+# ↓ 覆盖 默认编译选项
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wno-error=deprecated-declarations)
 endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# ↑ 覆盖 nav2_package() 设置
+# ↑ 覆盖 默认编译选项
 
 # ↓ 生成参数
 generate_parameter_library(

@@ -29,7 +29,7 @@ namespace models = mppi::models;
 
 enum class Scenario : int { CenterCost = 0, FootprintScan = 1, MixedEarlyCollision = 2 };
 
-class BenchmarkWorldView final : public nav2_mppi_controller::IWorldView {
+class BenchmarkWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     explicit BenchmarkWorldView(Scenario scenario) : scenario_(scenario) {}
 

@@ -12,6 +12,6 @@
 #include "finenav_mppi_controller/world_view_def.hpp"
 
 TEST(WorldViewInterfaceTest, DeclaresAbstractPlannerWorldViewContract) {
-    static_assert(std::is_abstract_v<nav2_mppi_controller::IWorldView>);
-    EXPECT_TRUE(std::is_polymorphic_v<nav2_mppi_controller::IWorldView>);
+    static_assert(std::is_abstract_v<finenav_mppi_controller::IWorldView>);
+    EXPECT_TRUE(std::is_polymorphic_v<finenav_mppi_controller::IWorldView>);
 }

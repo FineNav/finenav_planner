@@ -31,7 +31,7 @@ constexpr unsigned int kTimeSteps = 30;
 constexpr unsigned int kIterationCount = 1;
 constexpr unsigned int kPathPoints = 50;
 
-class EmptyWorldView final : public nav2_mppi_controller::IWorldView {
+class EmptyWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 

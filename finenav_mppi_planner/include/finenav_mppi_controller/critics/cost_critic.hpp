@@ -64,7 +64,7 @@ class CostCritic : public CriticFunction {
    *
    * @param costs [out] add obstacle cost values to this tensor
    */
-    void score(CriticData& data, const nav2_mppi_controller::IWorldView& world_view) override;
+    void score(CriticData& data, const finenav_mppi_controller::IWorldView& world_view) override;
 
   protected:
     void executeTrajectories(std::size_t count, const std::function<void(std::size_t)>& callback);
@@ -77,7 +77,7 @@ class CostCritic : public CriticFunction {
     * @param theta theta of pose
     * @return bool if in collision
     */
-    bool inCollision(float x, float y, float theta, const nav2_mppi_controller::IWorldView& world_view) const {
+    bool inCollision(float x, float y, float theta, const finenav_mppi_controller::IWorldView& world_view) const {
         return world_view.isCollision(x, y, theta);
     }
 

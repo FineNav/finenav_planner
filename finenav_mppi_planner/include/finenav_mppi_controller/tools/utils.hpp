@@ -276,7 +276,7 @@ inline void findPathCosts(CriticData& data, const WorldView& world_view) {
         //    }
 
         switch (world_view.getCost(path_x, path_y, data.path.yaws(idx))) {
-            // 使用具体数值替代 nav2_costmap_2d 宏常量：
+            // 使用具体数值替代 costmap 宏常量：
             // NO_INFORMATION = 255, LETHAL_OBSTACLE = 254, INSCRIBED_INFLATED_OBSTACLE = 253
             case 254:  // LETHAL_OBSTACLE
                 (*data.path_pts_valid)[idx] = false;

@@ -29,7 +29,7 @@
 namespace mppi::critics {
 namespace {
 
-class TestWorldView final : public nav2_mppi_controller::IWorldView {
+class TestWorldView final : public finenav_mppi_controller::IWorldView {
   public:
     bool isTrackingUnknown() const override { return false; }
 
