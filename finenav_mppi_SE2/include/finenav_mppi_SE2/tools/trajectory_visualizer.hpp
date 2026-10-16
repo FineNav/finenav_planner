@@ -51,7 +51,6 @@
 namespace mppi {
 
 struct VisualizerConfig {
-    std::string frame_id{"map"};
     std::string trajectory_topic{"/mppi_debug/trajectories"};
     std::size_t trajectory_step{5};
     std::size_t time_step{3};

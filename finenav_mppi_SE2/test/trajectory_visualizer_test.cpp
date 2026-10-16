@@ -81,7 +81,6 @@ class TrajectoryVisualizerTest : public ::testing::Test {
 
     static mppi::VisualizerConfig makeConfig() {
         mppi::VisualizerConfig config;
-        config.frame_id = "map";
         config.trajectory_topic = "/mppi_visualizer_test/trajectories_";
         config.trajectory_step = 2;
         config.time_step = 2;

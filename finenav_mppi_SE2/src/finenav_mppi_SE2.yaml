@@ -110,10 +110,6 @@ finenav_mppi_SE2:
     type: bool
     default_value: false
     description: "Publish candidate, optimal, and reference trajectories for RViz"
-  visualizer_frame_id:
-    type: string
-    default_value: "map"
-    description: "Frame assigned to visualization messages"
   visualizer_trajectory_topic:
     type: string
     default_value: "/mppi_debug/trajectories"
@@ -227,31 +223,19 @@ finenav_mppi_SE2:
     enabled:
       type: bool
       default_value: true
-      description: "Enable CostCritic (uses costmap inflation cost)"
+      description: "Enable CostCritic (uses WorldView costs and collision checks)"
     cost_power:
       type: int
       default_value: 1
       description: "Power exponent applied to cost"
     cost_weight:
       type: double
-      default_value: 3.81
-      description: "Weight for costmap cost (internally normalized by 254)"
-    critical_cost:
-      type: double
-      default_value: 300.0
-      description: "Penalty added when pose cost >= 253 (near-lethal)"
-    collision_cost:
-      type: double
-      default_value: 1000000.0
-      description: "Penalty for trajectories in collision"
+      default_value: 0.015
+      description: "Weight applied directly to WorldView costs"
     near_goal_distance:
       type: double
       default_value: 1.0
       description: "Distance from goal where repulsion is disabled (m)"
-    consider_footprint:
-      type: bool
-      default_value: true
-      description: "Use full footprint collision check instead of center point"
 
   # Aligns trajectories with the reference path.
   PathAlignCritic:

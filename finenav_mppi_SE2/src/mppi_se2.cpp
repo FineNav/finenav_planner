@@ -106,7 +106,6 @@ void MPPISE2::configure(const ConfigType& params) {
     critics_.push_back(std::make_unique<mppi::critics::VelocityDeadbandCritic>());
 
     visualizer_enabled_ = params.visualize;
-    visualizer_config_.frame_id = params.visualizer_frame_id;
     visualizer_config_.trajectory_topic = params.visualizer_trajectory_topic;
     visualizer_config_.trajectory_step = static_cast<std::size_t>(params.visualizer_trajectory_step);
     visualizer_config_.time_step = static_cast<std::size_t>(params.visualizer_time_step);

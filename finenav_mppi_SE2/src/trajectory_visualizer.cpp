@@ -177,8 +177,8 @@ std_msgs::msg::ColorRGBA diagnosticColor(const CriticCostBreakdown& breakdown, c
     return color;
 }
 
-void setZeroHeader(std_msgs::msg::Header& header, const std::string& frame_id) {
-    header.frame_id = frame_id;
+void setZeroHeader(std_msgs::msg::Header& header) {
+    header.frame_id = finenav::common::frames().world_fixed;
     header.stamp = builtin_interfaces::msg::Time{};
 }
 
@@ -441,7 +441,7 @@ visualization_msgs::msg::MarkerArray TrajectoryVisualizer::buildTrajectoryMarker
     const VisualizerConfig& config) {
     visualization_msgs::msg::MarkerArray markers;
     visualization_msgs::msg::Marker delete_all;
-    setZeroHeader(delete_all.header, config.frame_id);
+    setZeroHeader(delete_all.header);
     delete_all.action = visualization_msgs::msg::Marker::DELETEALL;
     markers.markers.push_back(delete_all);
 
@@ -459,7 +459,7 @@ visualization_msgs::msg::MarkerArray TrajectoryVisualizer::buildTrajectoryMarker
         }
 
         visualization_msgs::msg::Marker marker;
-        setZeroHeader(marker.header, config.frame_id);
+        setZeroHeader(marker.header);
         marker.ns = "candidate_trajectories";
         marker.id = marker_id++;
         marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
@@ -504,9 +504,9 @@ VisualizationFrame::SharedPtr TrajectoryVisualizer::buildFrame(const models::Tra
 }
 
 nav_msgs::msg::Path TrajectoryVisualizer::buildOptimalPath(const models::BatchArray& optimal,
-                                                           const VisualizerConfig& config) {
+                                                           const VisualizerConfig&) {
     nav_msgs::msg::Path path;
-    setZeroHeader(path.header, config.frame_id);
+    setZeroHeader(path.header);
     if (optimal.cols() < 2) {
         return path;
     }
@@ -532,9 +532,9 @@ nav_msgs::msg::Path TrajectoryVisualizer::buildOptimalPath(const models::BatchAr
 }
 
 nav_msgs::msg::Path TrajectoryVisualizer::buildReferencePath(const nav_msgs::msg::Path& reference,
-                                                             const VisualizerConfig& config) {
+                                                             const VisualizerConfig&) {
     nav_msgs::msg::Path path;
-    setZeroHeader(path.header, config.frame_id);
+    setZeroHeader(path.header);
     path.poses = reference.poses;
     for (auto& pose : path.poses) {
         pose.header = path.header;
@@ -543,9 +543,9 @@ nav_msgs::msg::Path TrajectoryVisualizer::buildReferencePath(const nav_msgs::msg
 }
 
 visualization_msgs::msg::Marker TrajectoryVisualizer::buildOptimalMarker(const models::BatchArray& optimal,
-                                                                         const VisualizerConfig& config) {
+                                                                         const VisualizerConfig&) {
     visualization_msgs::msg::Marker marker;
-    setZeroHeader(marker.header, config.frame_id);
+    setZeroHeader(marker.header);
     marker.ns = "optimal_trajectory";
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::LINE_STRIP;

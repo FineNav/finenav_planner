@@ -379,11 +379,11 @@ TEST(CriticScoreTest, CostCriticLeavesFreeSpaceCostsAtZero) {
     EXPECT_GT(world_view.cost_queries, 0u);
 }
 
-TEST(CriticScoreTest, CostCriticMarksFailureWhenAllTrajectoriesCollide) {
+TEST(CriticScoreTest, CostCriticDetectsCollisionEvenWithZeroMapCost) {
     finenav_mppi_SE2::Params params;
     CriticTestData fixture;
     TestWorldView world_view;
-    world_view.cost = 254;
+    world_view.cost = 0;
     world_view.collision = true;
     mppi::CriticCostBreakdown breakdown;
     fixture.data.critic_cost_breakdown = &breakdown;
@@ -397,6 +397,46 @@ TEST(CriticScoreTest, CostCriticMarksFailureWhenAllTrajectoriesCollide) {
     ASSERT_EQ(breakdown.collision_flags.size(), 2U);
     EXPECT_EQ(breakdown.collision_flags[0], 1U);
     EXPECT_EQ(breakdown.collision_flags[1], 1U);
+}
+
+TEST(CriticScoreTest, CostCriticUsesWorldViewCostsWithoutSpecialValues) {
+    finenav_mppi_SE2::Params params;
+    params.CostCritic.cost_weight = 0.015;
+    CostCritic critic;
+    critic.initialize(params);
+
+    for (const int cost : {1, 253, 254, 255, 1000}) {
+        CriticTestData fixture;
+        fixture.state.pose.pose.position.x = -10.0;
+        TestWorldView world_view;
+        world_view.cost = cost;
+
+        critic.score(fixture.data, world_view);
+
+        EXPECT_FALSE(fixture.data.fail_flag);
+        EXPECT_NEAR(fixture.costs(0), 0.015F * cost, 1.0e-5F);
+        EXPECT_NEAR(fixture.costs(1), 0.015F * cost, 1.0e-5F);
+    }
+}
+
+TEST(CriticScoreTest, CostCriticDisablesRepulsionNearGoalButStillChecksCollision) {
+    finenav_mppi_SE2::Params params;
+    CriticTestData fixture;
+    fixture.state.pose.pose.position.x = 1.0;
+    TestWorldView world_view;
+    world_view.cost = 1000;
+    CostCritic critic;
+    critic.initialize(params);
+
+    critic.score(fixture.data, world_view);
+    EXPECT_FLOAT_EQ(fixture.costs(0), 0.0F);
+    EXPECT_FLOAT_EQ(fixture.costs(1), 0.0F);
+    EXPECT_FALSE(fixture.data.fail_flag);
+
+    world_view.collision = true;
+    critic.score(fixture.data, world_view);
+    EXPECT_TRUE(fixture.data.fail_flag);
+    expectPositiveCosts(fixture);
 }
 
 TEST(CriticScoreTest, CostCriticKeepsPlanningWhenOneTrajectoryIsFree) {

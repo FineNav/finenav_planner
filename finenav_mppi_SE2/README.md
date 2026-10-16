@@ -20,7 +20,7 @@ WorldView 需实现 `finenav_mppi_SE2::IWorldView`，接口定义见 [world_view
 | `getCost(x, y, theta)` | 返回位姿对应的代价值，具体含义由 WorldView 定义 |
 | `isCollision(x, y, theta)` | 返回机器人在该位姿是否碰撞，同时用于判断参考路径点是否有效；由 WorldView 统一处理机器人轮廓、未知区域和地图边界的通行策略 |
 
-`CostCritic` 会跳过代价为 0 的位姿的碰撞检测，因此 `getCost()` 的空闲判定需与 `isCollision()` 保持一致。地图边界外的查询也需由 WorldView 妥善处理，避免越界访问。
+`CostCritic` 通过 `isCollision()` 判断碰撞，通过 `getCost()` 获取非碰撞位姿的评分代价，不对特定代价值赋予碰撞含义或进行固定范围归一化。地图边界外的查询需由 WorldView 妥善处理，避免越界访问。
 
 当 `CostCritic.num_threads > 1` 时，多个线程会同时调用同一 WorldView 的 `getCost()` 和 `isCollision()`，实现必须支持并发只读访问，并与地图更新做好同步。
 
@@ -95,10 +95,11 @@ public:
 
 ### 可视化
 
+可视化统一使用 FineNav 的 World 坐标系（`finenav::common::frames().world_fixed`）。
+
 | 参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `visualize` | bool | false | 是否发布轨迹可视化（调试用） |
-| `visualizer_frame_id` | string | map | 可视化消息的坐标系 |
 | `visualizer_trajectory_topic` | string | /mppi_debug/trajectories | MarkerArray 话题 |
 | `visualizer_trajectory_step` | int | 5 | 候选轨迹批量下采样步长 |
 | `visualizer_time_step` | int | 3 | 轨迹点时间下采样步长 |
@@ -147,13 +148,10 @@ public:
 |---|---|---|---|
 | `enabled` | bool | true | 是否启用 |
 | `cost_power` | int | 1 | 代价幂次 |
-| `cost_weight` | double | 3.81 | 权重（内部按 254 归一化） |
+| `cost_weight` | double | 0.015 | 直接作用于 WorldView 代价的权重 |
 | `num_threads` | int | 1 | OpenMP dynamic 调度的 worker 线程数，1 为串行 |
 | `chunk_size` | int | 1 | 每次动态领取的轨迹数 |
-| `critical_cost` | double | 300.0 | 位姿代价 ≥ 253（近致命）时的惩罚 |
-| `collision_cost` | double | 1000000.0 | 轨迹碰撞时的惩罚 |
 | `near_goal_distance` | double | 1.0 | 距目标此距离内关闭排斥（m） |
-| `consider_footprint` | bool | true | 用完整 footprint 碰撞检测而非中心点 |
 
 #### PathAlignCritic — 轨迹贴近参考路径
 
@@ -242,7 +240,6 @@ finenav_mppi_SE2:
 
   # 可视化（调试时改为 true）
   visualize: false
-  visualizer_frame_id: "map"
   visualizer_trajectory_topic: "/mppi_debug/trajectories"
   visualizer_trajectory_step: 5
   visualizer_time_step: 3
@@ -269,13 +266,10 @@ finenav_mppi_SE2:
   CostCritic:
     enabled: true
     cost_power: 1
-    cost_weight: 3.81
+    cost_weight: 0.015
     num_threads: 1
     chunk_size: 1
-    critical_cost: 300.0
-    collision_cost: 1000000.0
     near_goal_distance: 1.0
-    consider_footprint: true
   PathAlignCritic:
     enabled: true
     cost_power: 1

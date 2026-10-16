@@ -82,9 +82,6 @@ class CostCritic : public CriticFunction {
     }
 
   protected:
-    //  bool consider_footprint_{true};
-    float collision_cost_{0};
-    float critical_cost_{0};
     float weight_{0};
 
     float near_goal_distance_;

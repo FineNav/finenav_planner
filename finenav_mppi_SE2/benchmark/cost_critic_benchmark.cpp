@@ -107,8 +107,7 @@ finenav_mppi_SE2::Params makeParams() {
     finenav_mppi_SE2::Params params;
     params.CostCritic.enabled = true;
     params.CostCritic.cost_power = 1;
-    params.CostCritic.cost_weight = 3.81;
-    params.CostCritic.critical_cost = 300.0;
+    params.CostCritic.cost_weight = 0.015;
     params.CostCritic.near_goal_distance = 1.0;
     return params;
 }

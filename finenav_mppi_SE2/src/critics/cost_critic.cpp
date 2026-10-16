@@ -110,12 +110,7 @@ void CostCritic::initialize(const finenav_mppi_SE2::Params& p) {
     enabled_ = c.enabled;
     power_ = static_cast<unsigned int>(c.cost_power);
     weight_ = static_cast<float>(c.cost_weight);
-    critical_cost_ = static_cast<float>(c.critical_cost);
-    collision_cost_ = static_cast<float>(c.collision_cost);
     near_goal_distance_ = static_cast<float>(c.near_goal_distance);
-
-    // Normalized by cost value to put in same regime as other weights
-    weight_ /= 254.0f;
 
     RCLCPP_INFO(logger_, "scheduler=OpenMPDynamic configured_threads=%zu chunk_size=%zu",
                 execution_options_.num_threads, execution_options_.chunk_size);
@@ -142,27 +137,14 @@ void CostCritic::score(CriticData& data, const IWorldView& world_view) {
         const auto& traj = data.trajectories;
 
         for (Eigen::Index j = 0; j < traj_len; ++j) {
-            // The center-point cost does not use orientation and retains the
-            // detailed cost value that a footprint collision check would mask.
-            const float pose_cost =
-                static_cast<float>(world_view.getCost(traj.x(i, j), traj.y(i, j), traj.yaws(i, j)));
-            // In free space.
-            if (pose_cost < 1.0f) {
-                continue;
-            }
-
             if (inCollision(traj.x(i, j), traj.y(i, j), traj.yaws(i, j), world_view)) {
                 trajectory_collide = true;
                 break;
             }
 
-            // Let near-collision trajectory points be punished severely
-            // Note that we collision check based on the footprint actual,
-            // but score based on the center-point cost regardless
-            if (pose_cost >= 253) {
-                repulsive_cost[i] += critical_cost_;
-            } else if (!near_goal) {
-                // Generally prefer trajectories further from obstacles.
+            const float pose_cost =
+                static_cast<float>(world_view.getCost(traj.x(i, j), traj.y(i, j), traj.yaws(i, j)));
+            if (!near_goal) {
                 repulsive_cost[i] += pose_cost;
             }
         }
