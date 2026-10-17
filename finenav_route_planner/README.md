@@ -59,3 +59,7 @@ bfs_planner:
   max_planning_time: 5.0
   movement_weight: 1.0
 ```
+
+## License
+
+本包采用 [Mozilla Public License 2.0（MPL-2.0）](LICENSE)。

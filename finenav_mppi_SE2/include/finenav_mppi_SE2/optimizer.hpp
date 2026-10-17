@@ -52,7 +52,6 @@
 #include "finenav_mppi_SE2/models/trajectories.hpp"
 #include "finenav_mppi_SE2/motion_models.hpp"
 #include "finenav_mppi_SE2/tools/noise_generator.hpp"
-//#include "finenav_mppi_SE2/tools/parameters_handler.hpp"
 #include "finenav_mppi_SE2/finenav_mppi_SE2_params.hpp"
 #include "finenav_mppi_SE2/world_view_def.hpp"
 #include "finenav_mppi_SE2/tools/utils.hpp"
@@ -71,25 +70,18 @@ struct OptimizationResult {
 
 class Optimizer {
   public:
-    /**
-    * @brief Constructor for mppi::Optimizer
-    */
     Optimizer() = default;
 
     void setLogger(const rclcpp::Logger& logger) { logger_ = logger; }
 
-    /**
-   * @brief Destructor for mppi::Optimizer
-   */
     ~Optimizer() { shutdown(); }
 
     /**
-   * @brief Initializes optimizer on startup
-   * @param parent WeakPtr to node
-   * @param name Name of plugin
-   * @param costmap_ros Costmap2DROS object of environment
-   * @param dynamic_parameter_handler Parameter handler object
-   */
+     * @brief Initialize optimizer settings, critics, and sampling state.
+     * @param name Plugin name.
+     * @param critics Critic instances transferred to the optimizer's manager.
+     * @param params Optimizer and critic parameters.
+     */
     void initialize(const std::string& name, std::vector<std::unique_ptr<critics::CriticFunction>>& critics,
                     const finenav_mppi_SE2::Params& params) {
         name_ = name;
@@ -105,9 +97,7 @@ class Optimizer {
         RCLCPP_INFO(logger_, "MPPI optimizer initialized");
     }
 
-    /**
-   * @brief Shutdown for optimizer at process end
-   */
+    /// Stop the noise generation worker.
     void shutdown() { noise_generator_.shutdown(); }
 
     void getParams(const finenav_mppi_SE2::Params& p) {
@@ -143,14 +133,13 @@ class Optimizer {
     }
 
     /**
-   * @brief Compute control using MPPI algorithm
-   * @param robot_pose Pose of the robot at given time
-   * @param robot_speed Speed of the robot at given time
-   * @param plan Path plan to track
-   * @param goal_checker Object to check if goal is completed
-   * @return TwistStamped of the MPPI control
-   */
-    // geometry_msgs::msg::TwistStamped evalControl(
+     * @brief Optimize controls and roll out the resulting trajectory.
+     * @param robot_pose Current robot pose.
+     * @param robot_speed Measured robot velocity.
+     * @param plan Reference path to track.
+     * @param world_view Environment queries used for trajectory scoring.
+     * @return Optimized control sequence and corresponding pose trajectory.
+     */
     OptimizationResult evalControl(const geometry_msgs::msg::PoseStamped& robot_pose,
                                    const geometry_msgs::msg::Twist& robot_speed, const nav_msgs::msg::Path& plan,
                                    const finenav_mppi_SE2::IWorldView& world_view) {
@@ -162,21 +151,14 @@ class Optimizer {
         return finalizeControlSequence();
     }
 
-    /**
-   * @brief Get the trajectories generated in a cycle for visualization
-   * @return Set of trajectories evaluated in cycle
-   */
+    /// Sampled trajectories from the current optimization cycle.
     models::Trajectories& getGeneratedTrajectories() { return generated_trajectories_; }
 
     const CriticCostBreakdown& getCriticCostBreakdown() const { return critic_cost_breakdown_; }
 
     /**
-   * @brief Get the optimal trajectory for a cycle for visualization
-   * @return Optimal trajectory
-   */
-    /**
-     * @brief Get the optimal control sequence (vx, vy, wz) for each time step
-     * @return Eigen array of shape [time_steps, 3] with columns (vx, wz, vy)
+     * @brief Return the optimized controls with shape [time_steps, 3].
+     * @return Columns (vx, wz, vy); vy is zero for nonholonomic models.
      */
     models::BatchArray getControlSequence() const {
         models::BatchArray seq(settings_.time_steps, 3);
@@ -197,9 +179,7 @@ class Optimizer {
         return trajectories;
     }
 
-    /**
-    * @brief Reset the optimization problem to initial conditions
-   */
+    /// Clear optimization state and regenerate sampling noise.
     void reset() {
         state_.reset(settings_.batch_size, settings_.time_steps);
         control_sequence_.reset(settings_.time_steps);
@@ -220,10 +200,7 @@ class Optimizer {
         return {std::move(controls), std::move(trajectory)};
     }
 
-    /**
-   * @brief Main function to generate, score, and return trajectories
-   */
-
+    /// Sample trajectories, score them, and update the controls.
     void optimize(const finenav_mppi_SE2::IWorldView& world_view) {
         for (size_t i = 0; i < settings_.iteration_count; ++i) {
             generateNoisedTrajectories();
@@ -232,13 +209,7 @@ class Optimizer {
         }
     }
 
-    /**
-   * @brief Prepare state information on new request for trajectory rollouts
-   * @param robot_pose Pose of the robot at given time
-   * @param robot_speed Speed of the robot at given time
-   * @param plan Path plan to track
-   * @param goal_checker Object to check if goal is completed
-   */
+    /// Set the measured state and reference path, and clear per-cycle scoring data.
     void prepare(const geometry_msgs::msg::PoseStamped& robot_pose, const geometry_msgs::msg::Twist& robot_speed,
                  const nav_msgs::msg::Path& plan) {
         state_.pose = robot_pose;
@@ -273,10 +244,7 @@ class Optimizer {
         motion_model_->setConstraints(settings_.constraints, settings_.model_dt);
     }
 
-    /**
-   * @brief Shift the optimal control sequence after processing for
-   * next iterations initial conditions after execution
-   */
+    /// Shift controls by one step to warm-start the next cycle.
     void shiftControlSequence() {
         const Eigen::Index size = control_sequence_.vx.size();
         if (size > 1) {
@@ -294,10 +262,7 @@ class Optimizer {
 
     rclcpp::Logger logger_{rclcpp::get_logger("MPPISE2")};
 
-    /**
-   * @brief updates generated trajectories with noised trajectories
-   * from the last cycle's optimal control
-   */
+    /// Add noise to the current controls and roll out the sampled trajectories.
     void generateNoisedTrajectories() {
         noise_generator_.setNoisedControls(state_, control_sequence_);
         noise_generator_.generateNextNoises();
@@ -309,8 +274,7 @@ class Optimizer {
    * @brief Apply hard vehicle constraints on control sequence
    */
     void applyControlSequenceConstraints() {
-        // Apply specialty vehicle constraints before the dynamic projection,
-        // matching the acceleration-aware control-sequence pipeline.
+        // Apply vehicle-specific constraints before projecting velocity and acceleration limits.
         motion_model_->applyConstraints(control_sequence_);
 
         float previous_vx = state_.speed.linear.x;
@@ -374,10 +338,10 @@ class Optimizer {
     void propagateStateVelocitiesFromInitials(models::State& state) const { motion_model_->predict(state); }
 
     /**
-   * @brief Rollout velocities in state to poses
-   * @param trajectories to rollout
-   * @param state fill state
-   */
+     * @brief Integrate controls from the current robot pose.
+     * @param trajectory Output poses with columns (x, y, yaw).
+     * @param sequence Controls with columns (vx, wz, vy).
+     */
     void integrateStateVelocities(models::BatchArray& trajectory, const models::BatchArray& sequence) const {
         const Eigen::Index time_steps = sequence.rows();
         if (time_steps == 0) {
@@ -511,9 +475,10 @@ class Optimizer {
     bool isHolonomic() const { return motion_model_->isHolonomic(); }
 
     /**
-   * @brief Perform fallback behavior to try to recover from a set of trajectories in collision
-   * @param fail Whether the system failed to recover from
-   */
+     * @brief Reset and retry when trajectory scoring fails.
+     * @param fail Whether the current trajectory batch failed.
+     * @return True when optimization should retry; throws when retries are exhausted.
+     */
     bool fallback(bool fail) {
         static size_t counter = 0;
 
@@ -533,12 +498,10 @@ class Optimizer {
     }
 
   protected:
-    //  rclcpp_lifecycle::LifecycleNode::WeakPtr parent_;
     std::string name_;
 
     std::shared_ptr<MotionModel> motion_model_;
 
-    //  ParametersHandler * parameters_handler_;
     CriticManager critic_manager_;
     NoiseGenerator noise_generator_;
 
@@ -554,7 +517,7 @@ class Optimizer {
 
     CriticData critics_data_ = {
         state_, generated_trajectories_, path_, costs_, settings_.model_dt, false, nullptr, std::nullopt, std::nullopt,
-        nullptr};  /// Caution, keep references
+        nullptr};  /// Referenced state and scoring buffers must outlive this view.
 };
 
 }  // namespace mppi

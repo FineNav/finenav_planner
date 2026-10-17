@@ -1,6 +1,29 @@
-// Copyright (c) 2026.
-// IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
-// All rights reserved.
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ *   Copyright (c) 2021 Samsung Research America
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ * Modifications Copyright (c) 2026 IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
+ * This file has been modified from the original Nav2 source.
+ * Modifications: Adapted rotation-before-tracking behavior to the FineNav
+ *   Planner interface, parameter library, and planning context.
+ */
 
 #pragma once
 
@@ -21,13 +44,8 @@ using finenav::core::Trajectory;
 using finenav::core::OutputTrajectoryT;
 
 /**
- * @brief RotateShim — 原地旋转规划器，使机器人朝向对准参考路径上的前方采样点。
- *
- * 在 MPPI 追踪之前使用，采样参考路径上 forward_sampling_distance 远处的点
- * 作为旋转目标方向，匀速旋转直到 heading error < angular_dist_threshold。
- *
- * 对齐后 plan() 返回 nullopt，由 TrackingPolicy 终止循环，
- * BT 通过 ForceSuccess 转换后进入 MPPI ComputePlan。
+ * @brief 原地旋转，使机器人朝向对准参考路径上的前方采样点。
+ * 朝向误差小于 angular_dist_threshold 时，plan() 返回 nullopt 结束旋转。
  */
 class RotateShim {
 public:
@@ -45,20 +63,16 @@ public:
   /**
    * @brief 执行一次旋转规划。
    * @param ctx 包含 robot_state 和 ref_traj
-   * @return 若已对齐返回 nullopt；否则返回纯旋转角速度的轨迹
+   * @return 已对齐时返回 nullopt；空路径时返回当前位姿和零速度；否则返回纯旋转轨迹
    */
   std::optional<Trajectory<OutputProfile>> plan(const Context& ctx);
 
 private:
   /**
-   * @brief 在参考路径上采样前方 forward_sampling_distance 处的点。
-   *
-   * 从路径起始点开始累加欧式距离，返回第一个距离 >= forward_sampling_distance 的点。
-   * 若路径不够长，返回最后一个点。
-   *
-   * @param ref_poses 参考轨迹的位姿列表
-   * @param sampling_distance 前方采样距离
-   * @return 采样点的位姿坐标（x, y, z）
+   * @brief 返回与路径起点的平面直线距离达到采样距离的第一个点。
+   * @param ref_poses 非空参考路径
+   * @param sampling_distance 采样距离，单位 m
+   * @return 满足距离条件的点；无满足条件的点时返回路径终点
    */
   static geometry_msgs::msg::Point getSampledPathPt(
       const std::vector<geometry_msgs::msg::Pose>& ref_poses,
@@ -70,7 +84,6 @@ private:
   /** @brief 归一化角度到 [-pi, pi] */
   static double normalizeAngle(double angle);
 
-  // ── Parameters ────────────────────────────────────────
   double forward_sampling_distance_ = 0.5;
   double angular_speed_             = 0.8;
   double angular_dist_threshold_    = 0.1;

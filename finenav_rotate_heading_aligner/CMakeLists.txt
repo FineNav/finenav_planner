@@ -52,4 +52,7 @@ ament_export_include_directories(include/${PROJECT_NAME})
 ament_export_targets(${PROJECT_NAME}Targets HAS_LIBRARY_TARGET)
 ament_export_libraries(finenav_rotate_shim)
 ament_export_dependencies(${dependencies})
+install(FILES LICENSE NOTICE DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY LICENSES DESTINATION share/${PROJECT_NAME})
+
 ament_package()

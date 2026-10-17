@@ -39,7 +39,7 @@ namespace mppi::critics {
 
 /**
  * @class mppi::critics::VelocityDeadbandCritic
- * @brief Critic objective function for enforcing feasible constraints
+ * @brief Penalizes velocities below the configured deadband thresholds.
  */
 
 class VelocityDeadbandCritic : public CriticFunction {
@@ -50,10 +50,8 @@ class VelocityDeadbandCritic : public CriticFunction {
     void initialize(const finenav_mppi_SE2::Params& params) override;
 
     /**
-   * @brief Evaluate cost related to goal following
-   *
-   * @param costs [out] add reference cost values to this tensor
-   */
+     * @brief Penalize velocities below the configured deadband thresholds.
+     */
     void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) override;
 
   protected:

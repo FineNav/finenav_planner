@@ -47,11 +47,8 @@ class PreferForwardCritic : public CriticFunction {
     void initialize(const finenav_mppi_SE2::Params& params) override;
 
     /**
-   * @brief Evaluate cost related to robot orientation at goal pose
-   * (considered only if robot near last goal in current plan)
-   *
-   * @param costs [out] add goal angle cost values to this tensor
-   */
+     * @brief Penalize backward motion away from the goal region.
+     */
     void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) override;
 
   protected:

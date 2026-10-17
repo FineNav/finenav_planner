@@ -297,8 +297,7 @@ void BM_Mixed3000(benchmark::State& state) {
 
 }  // namespace
 
-// Optimizer carries its control sequence across calls, so each repetition must
-// measure the same single planning call in both implementations.
+// Each repetition measures one planning call after warmup with its own optimizer.
 #define REGISTER_PRACTICAL_BENCHMARK(function, name) \
     BENCHMARK(function)->Name(name)->Iterations(1)->UseRealTime()->ComputeStatistics("p95", percentile95)
 

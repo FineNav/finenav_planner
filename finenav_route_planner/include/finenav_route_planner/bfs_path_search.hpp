@@ -9,7 +9,7 @@
 #include "finenav_core/plugin_planner.hpp"
 #include "finenav_route_planner/bfs_params.hpp"
 
-#include "finenav_route_planner/astar_algorithm.hpp"   // BFS is A* with Heuristic::Zero
+#include "finenav_route_planner/astar_algorithm.hpp"
 #include "finenav_route_planner/world_view.hpp"
 
 namespace finenav {
@@ -21,22 +21,8 @@ using finenav::core::InputTrajectoryT;
 using finenav::core::OutputTrajectoryT;
 using finenav::core::Trajectory;
 
-// =============================================================
-// BfsPathSearch
-//
-// FineNav planner that finds the minimum-cost grid path without
-// a directional heuristic (Dijkstra / weighted BFS).
-//
-// Internally this is AStarAlgorithm with Heuristic::Zero:
-//   h(n) = 0  →  f(n) = g(n)  →  pure cost-based expansion.
-//
-// On a uniform-cost map this is equivalent to classic BFS and
-// finds the fewest-hops path.  On a weighted map it finds the
-// minimum traversal-cost path (same as Dijkstra).
-//
-// getCost() IS called, so world views should return meaningful values.
-// =============================================================
-
+/// Minimum-cost grid search using AStarAlgorithm with Heuristic::Zero (Dijkstra).
+/// Equivalent to breadth-first search when all edge weights are equal.
 class BfsPathSearch {
 public:
     BfsPathSearch() = default;
@@ -67,7 +53,6 @@ public:
     Result plan(const Context& ctx, const IWorldView& world_view);
 
 private:
-    // All fields mirror AstarPathSearch except heuristic_ is always Zero.
     astar::Connectivity connectivity_    = astar::Connectivity::N8;
     double goal_tolerance_m_  = 0.5;
     int    max_iterations_    = 1000000;

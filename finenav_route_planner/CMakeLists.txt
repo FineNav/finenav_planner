@@ -63,5 +63,7 @@ install(TARGETS astar_params bfs_params
         RUNTIME DESTINATION bin
 )
 ament_export_targets(export_${PROJECT_NAME}_params HAS_LIBRARY_TARGET)
+install(FILES LICENSE DESTINATION share/${PROJECT_NAME})
+
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)
 

@@ -301,3 +301,9 @@ finenav_mppi_SE2:
 ```
 
 上面的值即 `src/finenav_mppi_SE2.yaml` 里的默认值；实际使用中只需覆写要改的参数。
+
+## License
+
+本包的 FineNav 代码和修改采用 [Mozilla Public License 2.0（MPL-2.0）](LICENSE)。
+Nav2 上游代码保留原有的 [MIT](LICENSES/MIT.txt)、
+[Apache-2.0](LICENSES/Apache-2.0.txt) 许可和版权声明，来源及署名见 [NOTICE](NOTICE)。

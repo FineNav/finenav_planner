@@ -31,3 +31,9 @@ finenav_rotate_shim:
   angular_speed: 0.8
   angular_dist_threshold: 0.1
 ```
+
+## License
+
+本包的 FineNav 改编部分采用 [Mozilla Public License 2.0（MPL-2.0）](LICENSE)。
+本包基于 Nav2 的 `nav2_rotation_shim_controller` 改编，保留上游
+[Apache-2.0](LICENSES/Apache-2.0.txt) 许可和版权声明，来源及署名见 [NOTICE](NOTICE)。

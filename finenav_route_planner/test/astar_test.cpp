@@ -2,14 +2,7 @@
 // IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
 // All rights reserved.
 
-// =============================================================
-// Unit tests for AStarAlgorithm
-//
-// Tests are organised in three groups:
-//   1. Core algorithm correctness (via lambda maps, no FineNav deps)
-//   2. Edge cases and search limits
-//   3. AstarPathSearch integration (IWorldView + planner config)
-// =============================================================
+// A* algorithm tests and AstarPathSearch integration tests.
 
 #include <gtest/gtest.h>
 #include <cmath>
@@ -17,19 +10,16 @@
 
 #include "finenav_route_planner/astar_algorithm.hpp"
 #include "finenav_route_planner/astar_path_search.hpp"
-#include "grid_map.hpp"    // test-only utility (in this directory)
+#include "grid_map.hpp"
 
-// ── helpers ──────────────────────────────────────────────────────────────
-
+// helpers
 // Build a simple walkable-everywhere lambda map for AStarAlgorithm.
 inline auto makeOpenMap()
 {
     return [](const astar::Vec3&) { return true; };
 }
 
-// Build a lambda map backed by GridMap.
-// Takes GridMap by VALUE so lambdas own the data and are safe
-// even when called with a temporary GridMap argument.
+// Capture the grid by value so each query owns its map data.
 inline auto makeGridLambdas(astar::GridMap g, double /*res*/ = 1.0)
 {
     auto is_walkable = [g](const astar::Vec3& c) -> bool {
@@ -41,9 +31,7 @@ inline auto makeGridLambdas(astar::GridMap g, double /*res*/ = 1.0)
     return std::make_pair(is_walkable, get_cost);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
 // Group 1: Core algorithm correctness (2-D)
-// ─────────────────────────────────────────────────────────────────────────
 
 TEST(AStarAlgorithm2D, FindsPath_OpenSpace)
 {
@@ -126,9 +114,7 @@ TEST(AStarAlgorithm2D, PathAvoidsObstacles)
             << "Path passes through obstacle at (" << c.x << "," << c.y << ")";
 }
 
-// ─────────────────────────────────────────────────────────────────────────
 // Group 2: Edge cases and search limits
-// ─────────────────────────────────────────────────────────────────────────
 
 TEST(AStarAlgorithm2D, StartEqualsGoal)
 {
@@ -182,17 +168,13 @@ TEST(AStarAlgorithm2D, MaxIterations_TerminatesEarly)
     astar::AStarAlgorithm algo(iw, gc);
     algo.setMaxIterations(10);
     algo.setGoalTolerance(0.0);
-    // Very distant goal — should be cut off
+    // The iteration limit terminates a search toward a distant goal.
     auto path = algo.findPath({0, 0, 0}, {999, 999, 0});
-    // Either no path (cut off) or a sub-optimal partial
-    // The important thing is it does NOT run forever
     (void)path;
     SUCCEED();
 }
 
-// ─────────────────────────────────────────────────────────────────────────
 // Group 3: 3-D search
-// ─────────────────────────────────────────────────────────────────────────
 
 TEST(AStarAlgorithm3D, FindsPath_OpenVolume)
 {
@@ -211,7 +193,7 @@ TEST(AStarAlgorithm3D, FindsPath_OpenVolume)
 
 TEST(AStarAlgorithm3D, PathLength_FaceNeighbours)
 {
-    // With face-only neighbours, cost from (0,0,0) to (0,0,4) = 5 cells
+    // Four face-neighbour steps produce five cells including the start.
     auto is_walkable = [](const astar::Vec3&) { return true; };
     auto get_cost    = [](const astar::Vec3&) { return 0.0; };
 
@@ -223,9 +205,7 @@ TEST(AStarAlgorithm3D, PathLength_FaceNeighbours)
     EXPECT_EQ(path->size(), 5u);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
 // Group 4: AstarPathSearch integration (IWorldView + planner)
-// ─────────────────────────────────────────────────────────────────────────
 
 // Minimal IWorldView implementation backed by GridMap
 class TestWorldView : public finenav::AstarPathSearch::IWorldView {
@@ -264,11 +244,7 @@ inline finenav::AstarPathSearch makePlanner()
     return planner;
 }
 
-// PlanningContext stores const references into owned storage, so the owned
-// RobotState / ref_traj must outlive every plan() call.  Keep them in a bundle
-// that converts to `const PlanningContext&`; the bundle is a temporary living
-// for the whole plan() call, so call sites (`planner.plan(makeCtx(...), view)`)
-// stay unchanged.
+// Owns the state and trajectory referenced by ctx throughout plan().
 struct AstarTestCtx {
     finenav::core::RobotState robot_state;
     finenav::core::InputTrajectoryT<finenav::AstarPathSearch> ref_traj;
@@ -336,8 +312,4 @@ TEST(AstarPathSearch, OutputPoses_AreWorldCoordinates)
         EXPECT_LT(pose.position.y, 10.0);
     }
 }
-
-
-
-
 

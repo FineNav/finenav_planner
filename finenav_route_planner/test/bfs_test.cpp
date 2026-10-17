@@ -2,12 +2,7 @@
 // IWIN-FINS Lab, Shanghai Jiao Tong University, Shanghai, China.
 // All rights reserved.
 
-// BfsPathSearch / Dijkstra-mode test suite.
-//
-// BfsAlgorithm no longer exists as a separate class.
-// "BFS" is now AStarAlgorithm configured with Heuristic::Zero,
-// which degrades A* to Dijkstra (= BFS on uniform-cost grids).
-// All tests use this unified algorithm directly or via BfsPathSearch.
+// Dijkstra-mode algorithm tests and BfsPathSearch integration tests.
 
 #include <gtest/gtest.h>
 #include <cmath>
@@ -16,8 +11,7 @@
 #include "finenav_route_planner/bfs_path_search.hpp"
 #include "grid_map.hpp"
 
-// ── helpers ──────────────────────────────────────────────────────────────
-
+// helpers
 // Build a Dijkstra-mode (h=0) AStarAlgorithm over a GridMap.
 inline astar::AStarAlgorithm makeDijkstra(const astar::GridMap& g)
 {
@@ -32,8 +26,7 @@ inline astar::AStarAlgorithm makeDijkstra(const astar::GridMap& g)
     return algo;
 }
 
-// ── Algorithm tests (via AStarAlgorithm + Heuristic::Zero) ──────────────
-
+// Algorithm tests (via AStarAlgorithm + Heuristic::Zero)
 TEST(BfsAlgorithm2D, FindsPath_OpenSpace)
 {
     auto algo = makeDijkstra(astar::GridMap(20, 20));
@@ -121,7 +114,7 @@ TEST(BfsAlgorithm2D, MaxIterationsZero_ReturnsNulloptForDifferentGoal)
     EXPECT_FALSE(algo.findPath({0, 0, 0}, {1, 0, 0}).has_value());
 }
 
-// findPathToAny is now a method of AStarAlgorithm (h forced to 0 internally)
+// findPathToAny uses a zero heuristic.
 TEST(BfsAlgorithm2D, FindPathToAny_ReturnsStartWhenStartIsGoal)
 {
     auto algo = makeDijkstra(astar::GridMap(10, 10));
@@ -160,11 +153,10 @@ TEST(BfsAlgorithm3D, FindsPath_OpenVolume)
     EXPECT_EQ(path->back(),  (astar::Vec3{3, 3, 3}));
 }
 
-// Weighted-cost test: Dijkstra must prefer low-cost detour over shorter obstacle-adjacent path
+// Dijkstra prefers a lower-cost detour to the direct route.
 TEST(BfsAlgorithm2D, PrefersLowerCostPath_WeightedGrid)
 {
-    // 5-wide grid. Direct path (x=2 column) has high cost cells.
-    // Detour (x=0 column) is longer but cheaper.
+    // The direct route crosses high-cost cells in column x = 2.
     astar::GridMap grid(5, 6);
     grid.setCost(2, 1, 100.0);
     grid.setCost(2, 2, 100.0);
@@ -184,8 +176,7 @@ TEST(BfsAlgorithm2D, PrefersLowerCostPath_WeightedGrid)
     }
 }
 
-// ── BfsPathSearch integration tests ─────────────────────────────────────
-
+// BfsPathSearch integration tests
 class TestWorldView : public finenav::BfsPathSearch::IWorldView {
 public:
     TestWorldView(const astar::GridMap& g, double step_size)
@@ -221,11 +212,7 @@ inline finenav::BfsPathSearch makePlanner()
     return planner;
 }
 
-// PlanningContext stores const references into owned storage, so the owned
-// RobotState / ref_traj must outlive every plan() call.  Keep them in a bundle
-// that converts to `const PlanningContext&`; the bundle is a temporary living
-// for the whole plan() call, so call sites (`planner.plan(makeCtx(...), view)`)
-// stay unchanged.
+// Owns the state and trajectory referenced by ctx throughout plan().
 struct BfsTestCtx {
     finenav::core::RobotState robot_state;
     finenav::core::InputTrajectoryT<finenav::BfsPathSearch> ref_traj;

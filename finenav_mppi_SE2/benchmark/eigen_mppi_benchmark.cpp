@@ -25,7 +25,7 @@
 
 namespace {
 
-// Match the historical mppi/01_open baseline workload (3k trajectories x 30 steps).
+// Open-space workload: 3000 trajectories, 30 time steps, and one MPPI iteration.
 constexpr unsigned int kBatchSize = 3000;
 constexpr unsigned int kTimeSteps = 30;
 constexpr unsigned int kIterationCount = 1;

@@ -22,18 +22,12 @@ using finenav::core::InputTrajectoryT;
 using finenav::core::OutputTrajectoryT;
 using finenav::core::Trajectory;
 
-// =============================================================
-// AstarPathSearch
-//
-// FineNav planner that performs uniform-grid A* path search.
-// =============================================================
-
+/// Uniform-grid A* planner.
 class AstarPathSearch {
 public:
     AstarPathSearch() = default;
 
-    // ── FineNav framework metadata ────────────────────────────
-
+    // FineNav framework metadata
     using ConfigType = astar_planner::Params;
 
     static constexpr IOProfile InputProfile = {

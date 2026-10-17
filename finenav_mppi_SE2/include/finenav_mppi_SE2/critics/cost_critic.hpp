@@ -46,7 +46,7 @@ struct CostCriticExecutionOptions {
 
 /**
  * @class mppi::critics::CostCritic
- * @brief Critic objective function for avoiding obstacles using costmap's inflated cost
+ * @brief Penalizes obstacle costs and collisions along trajectories.
  */
 
 class CostCritic : public CriticFunction {
@@ -60,23 +60,16 @@ class CostCritic : public CriticFunction {
     void initialize(const finenav_mppi_SE2::Params& params) override;
 
     /**
-   * @brief Evaluate cost related to obstacle avoidance
-   *
-   * @param costs [out] add obstacle cost values to this tensor
-   */
+     * @brief Penalize obstacle costs and collisions along each trajectory.
+     */
     void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) override;
 
   protected:
     void executeTrajectories(std::size_t count, const std::function<void(std::size_t)>& callback);
 
     /**
-    * @brief Checks if cost represents a collision
-    * @param cost Point cost at pose center
-    * @param x X of pose
-    * @param y Y of pose
-    * @param theta theta of pose
-    * @return bool if in collision
-    */
+     * @brief Check the collision model at the trajectory pose.
+     */
     bool inCollision(float x, float y, float theta, const finenav_mppi_SE2::IWorldView& world_view) const {
         return world_view.isCollision(x, y, theta);
     }

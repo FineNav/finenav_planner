@@ -38,7 +38,6 @@
 #include <thread>
 
 #include "finenav_mppi_SE2/models/optimizer_settings.hpp"
-//#include "finenav_mppi_SE2/tools/parameters_handler.hpp"
 #include "finenav_mppi_SE2/models/control_sequence.hpp"
 #include "finenav_mppi_SE2/models/state.hpp"
 
@@ -50,9 +49,6 @@ namespace mppi {
  */
 class NoiseGenerator {
   public:
-    /**
-    * @brief Constructor for mppi::NoiseGenerator
-    */
     NoiseGenerator() = default;
 
     /**
@@ -75,9 +71,8 @@ class NoiseGenerator {
     void generateNextNoises();
 
     /**
-   * @brief set noised control_sequence to state controls
-   * @return noises vx, vy, wz
-   */
+     * @brief Add stored noise to the control sequence and populate state.cvx/cvy/cwz.
+     */
     void setNoisedControls(models::State& state, const models::ControlSequence& control_sequence);
 
     /**
@@ -94,12 +89,8 @@ class NoiseGenerator {
     void noiseThread();
 
     /**
-   * @brief Generate random controls by gaussian noise with mean in
-   * control_sequence_
-   *
-   * @return tensor of shape [ batch_size_, time_steps_, 2]
-   * where 2 stands for v, w
-   */
+     * @brief Fill [batch_size, time_steps] noise arrays for vx, wz, and holonomic vy.
+     */
     void generateNoisedControls();
 
     models::BatchArray noises_vx_;

@@ -261,4 +261,7 @@ ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(${dependencies_pkgs})
 ament_export_include_directories(include/${PROJECT_NAME})
 
+install(FILES LICENSE NOTICE DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY LICENSES DESTINATION share/${PROJECT_NAME})
+
 ament_package()

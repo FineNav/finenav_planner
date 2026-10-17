@@ -67,7 +67,7 @@ BfsPathSearch::Result BfsPathSearch::plan(
     const astar::Vec3 start = worldToCell(sp.x, sp.y, sp.z);
     const astar::Vec3 goal  = worldToCell(gp.x, gp.y, gp.z);
 
-    // BFS = A* with Heuristic::Zero (h=0 → pure cost-based Dijkstra expansion)
+    // Zero heuristic expands cells in accumulated-cost order (Dijkstra).
     astar::AStarAlgorithm algo(is_walkable, get_cost);
     algo.setConnectivity(connectivity_);
     algo.setHeuristic(astar::Heuristic::Zero);
@@ -75,7 +75,6 @@ BfsPathSearch::Result BfsPathSearch::plan(
     algo.setMaxIterations(max_iterations_);
     algo.setMaxPlanningTime(max_planning_time_);
     algo.setMovementWeight(movement_weight_);
-    // greedy_weight: irrelevant when h=0, leave at default (1.001 * 0 = 0)
 
     auto cell_path = algo.findPath(start, goal);
     if (!cell_path)

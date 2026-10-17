@@ -36,7 +36,6 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 
-//#include "finenav_mppi_SE2/tools/parameters_handler.hpp"
 #include "finenav_mppi_SE2/critic_data.hpp"
 #include "finenav_mppi_SE2/critic_function.hpp"
 #include "finenav_mppi_SE2/tools/utils.hpp"
@@ -61,31 +60,23 @@ namespace mppi {
 
 class CriticManager {
   public:
-    /**
-    * @brief Constructor for mppi::CriticManager
-    */
     CriticManager() = default;
 
-    /**
-    * @brief Virtual Destructor for mppi::CriticManager
-    */
     virtual ~CriticManager() = default;
 
     /**
-    * @brief Configure critic manager on bringup and load plugins
-    * @param parent WeakPtr to node
-    * @param name Name of plugin
-    * @param costmap_ros Costmap2DROS object of environment
-    * @param dynamic_parameter_handler Parameter handler object
-    */
+     * @brief Take ownership of the critics and initialize them.
+     * @param critics Critics moved into the manager
+     * @param params Critic configuration
+     */
     void on_configure(std::vector<std::unique_ptr<critics::CriticFunction>>& critics,
                       const finenav_mppi_SE2::Params& params);
 
     /**
-    * @brief Score trajectories by the set of loaded critic functions
-    * @param CriticData Struct of necessary information to pass to the critic functions
-    */
-
+     * @brief Accumulate critic scores in data.costs and record requested contributions.
+     * @param data Trajectories, accumulated costs, and scoring state
+     * @param world_view Read-only collision and cost queries
+     */
     void evalTrajectoriesScores(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) const;
 
   protected:

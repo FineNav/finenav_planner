@@ -11,18 +11,14 @@
 namespace astar {
 
 enum class Heuristic {
-    // h = 0 : degrades A* to Dijkstra's algorithm (weighted BFS).
-    // On a uniform-cost grid this is equivalent to classic BFS.
-    // On a weighted grid it finds the minimum-cost path without
-    // directional guidance, at the cost of more node expansions.
+    // Dijkstra search; equivalent to BFS when all edge weights are equal.
     Zero,
     Euclidean,
     Manhattan,
     Chebyshev
 };
 
-// Heuristic operates on Vec3 cells.
-// For 2-D grids z is always 0, so the 3-D formula degrades correctly.
+// Cell-space distance; 2-D grids use z = 0.
 inline double calculateHeuristic(
     Heuristic   type,
     const Vec3& from,

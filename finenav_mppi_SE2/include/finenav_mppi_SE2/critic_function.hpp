@@ -32,7 +32,6 @@
 
 #include "rclcpp/logger.hpp"
 
-//#include "finenav_mppi_SE2/tools/parameters_handler.hpp"
 #include "finenav_mppi_SE2/critic_data.hpp"
 #include "finenav_mppi_SE2/finenav_mppi_SE2_params.hpp"
 #include "finenav_mppi_SE2/world_view_def.hpp"
@@ -46,20 +45,15 @@ namespace mppi::critics {
 
 class CriticFunction {
   public:
-    /**
-    * @brief Constructor for mppi::critics::CriticFunction
-    */
     CriticFunction() = default;
 
-    /**
-    * @brief Destructor for mppi::critics::CriticFunction
-    */
     virtual ~CriticFunction() = default;
 
     /**
-    * @brief Main function to score trajectory
-    * @param data Critic data to use in scoring
-    */
+     * @brief Accumulate trajectory scores in data.costs.
+     * @param data Trajectories, accumulated costs, and scoring state
+     * @param world_view Read-only collision and cost queries
+     */
     virtual void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) = 0;
 
     /**

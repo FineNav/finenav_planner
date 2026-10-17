@@ -43,12 +43,6 @@ void VelocityDeadbandCritic::initialize(const finenav_mppi_SE2::Params& p) {
     for (size_t i = 0; i < 3 && i < dv.size(); ++i) {
         deadband_velocities_[i] = static_cast<float>(dv[i]);
     }
-    //
-    //  RCLCPP_INFO_STREAM(
-    //    logger_, "VelocityDeadbandCritic instantiated with "
-    //      << power_ << " power, " << weight_ << " weight, deadband_velocity ["
-    //      << deadband_velocities_.at(0) << "," << deadband_velocities_.at(1) << ","
-    //      << deadband_velocities_.at(2) << "]");
 }
 
 void VelocityDeadbandCritic::score(CriticData& data, const IWorldView& world_view) {

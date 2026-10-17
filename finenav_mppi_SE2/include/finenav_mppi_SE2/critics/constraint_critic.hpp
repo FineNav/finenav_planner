@@ -47,10 +47,8 @@ class ConstraintCritic : public CriticFunction {
     void initialize(const finenav_mppi_SE2::Params& params) override;
 
     /**
-   * @brief Evaluate cost related to goal following
-   *
-   * @param costs [out] add reference cost values to this tensor
-   */
+     * @brief Penalize speed-limit and Ackermann turning-radius violations.
+     */
     void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) override;
 
   protected:

@@ -39,7 +39,6 @@
 #include "finenav_mppi_SE2/models/control_sequence.hpp"
 #include "finenav_mppi_SE2/models/state.hpp"
 
-//#include "finenav_mppi_SE2/tools/parameters_handler.hpp"
 
 namespace mppi {
 
@@ -49,14 +48,8 @@ namespace mppi {
  */
 class MotionModel {
   public:
-    /**
-    * @brief Constructor for mppi::MotionModel
-    */
     MotionModel() = default;
 
-    /**
-    * @brief Destructor for mppi::MotionModel
-    */
     virtual ~MotionModel() = default;
 
     void setConstraints(const models::ControlConstraints& constraints, float model_dt) {
@@ -170,9 +163,6 @@ class MotionModel {
  */
 class AckermannMotionModel : public MotionModel {
   public:
-    /**
-    * @brief Constructor for mppi::AckermannMotionModel
-    */
     AckermannMotionModel() { min_turning_r_ = 0.2; }
 
     /**
@@ -217,8 +207,7 @@ class AckermannMotionModel : public MotionModel {
             return std::clamp(requested, reachable_kinematic_lower, reachable_kinematic_upper);
         }
 
-        // No value can satisfy both the acceleration and turning-radius intervals.
-        // Keep the existing kinematic-priority fallback for this infeasible case.
+        // If the intervals are disjoint, prioritize the turning-radius constraint.
         return std::clamp(previous, kinematic_lower, kinematic_upper);
     }
 
@@ -238,9 +227,6 @@ class AckermannMotionModel : public MotionModel {
  */
 class DiffDriveMotionModel : public MotionModel {
   public:
-    /**
-    * @brief Constructor for mppi::DiffDriveMotionModel
-    */
     DiffDriveMotionModel() = default;
 
     /**
@@ -256,9 +242,6 @@ class DiffDriveMotionModel : public MotionModel {
  */
 class OmniMotionModel : public MotionModel {
   public:
-    /**
-    * @brief Constructor for mppi::OmniMotionModel
-    */
     OmniMotionModel() = default;
 
     /**

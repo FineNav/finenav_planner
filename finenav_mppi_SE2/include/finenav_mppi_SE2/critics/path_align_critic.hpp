@@ -37,10 +37,7 @@ namespace mppi::critics {
 
 /**
  * @class mppi::critics::PathAlignCritic
- * @brief Critic objective function for aligning to the path. Note:
- * High settings of this will follow the path more precisely, but also makes it
- * difficult (or impossible) to deviate in the presence of dynamic obstacles.
- * This is an important critic to tune and consider in tandem with Obstacle.
+ * @brief Penalizes trajectory deviation from the reference path.
  */
 
 class PathAlignCritic : public CriticFunction {
@@ -51,10 +48,8 @@ class PathAlignCritic : public CriticFunction {
     void initialize(const finenav_mppi_SE2::Params& params) override;
 
     /**
-   * @brief Evaluate cost related to trajectories path alignment
-   *
-   * @param costs [out] add reference cost values to this tensor
-   */
+     * @brief Penalize trajectory deviation from collision-free reference path points.
+     */
     void score(CriticData& data, const finenav_mppi_SE2::IWorldView& world_view) override;
 
   protected:

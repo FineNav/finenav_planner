@@ -129,7 +129,7 @@ inline double calculatePathLength(const nav_msgs::msg::Path& path) {
  * @brief Check if the robot pose is within tolerance to the goal
  * @param pose_tolerance Pose tolerance to use
  * @param robot Pose of robot
- * @param path Path to retreive goal pose from
+ * @param path Path to retrieve goal pose from
  * @return bool If robot is within tolerance to the goal
  */
 inline bool withinPositionGoalTolerance(float pose_tolerance, const geometry_msgs::msg::Pose& robot,
@@ -165,12 +165,8 @@ std::enable_if_t<std::is_floating_point_v<T>, T> normalize_angles(T angle) {
 }
 
 /**
-  * @brief normalize
-  * Normalizes the angle to be -M_PI circle to +M_PI circle
-  * It takes and returns radians.
-  * @param angles Angles to normalize
-  * @return normalized angles
-  */
+ * @brief Normalize each angle in radians to (-pi, pi].
+ */
 template <typename Derived>
 auto normalize_angles(const Eigen::ArrayBase<Derived>& angles) {
     const auto theta = (angles + static_cast<float>(M_PI))
@@ -180,26 +176,16 @@ auto normalize_angles(const Eigen::ArrayBase<Derived>& angles) {
 }
 
 /**
-  * @brief shortest_angular_distance
-  *
-  * Given 2 angles, this returns the shortest angular
-  * difference.  The inputs and ouputs are of course radians.
-  *
-  * The result
-  * would always be -pi <= result <= pi.  Adding the result
-  * to "from" will always get you an equivelent angle to "to".
-  * @param from Start angle
-  * @param to End angle
-  * @return Shortest distance between angles
-  */
+ * @brief Return the signed shortest rotation from start to end in radians.
+ * Inputs are radians; the result lies in (-pi, pi].
+ */
 template <typename F, typename T>
 auto shortest_angular_distance(const F& from, const T& to) {
     return normalize_angles(to - from);
 }
 
 /**
- * @brief Evaluate furthest point idx of data.path which is
- * nearset to some trajectory in data.trajectories
+ * @brief Find the furthest path index nearest to a rollout endpoint.
  * @param data Data to use
  * @return Idx of furthest path point reached by a set of trajectories
  */
@@ -226,13 +212,9 @@ inline size_t findPathFurthestReachedPoint(const CriticData& data) {
 }
 
 /**
- * @brief Evaluate closest point idx of data.path which is
- * nearset to the start of the trajectory in data.trajectories
- * @param data Data to use
- * @return Idx of closest path point at start of the trajectories
+ * @brief Find the path point nearest to the first point of the first rollout.
  */
 inline size_t findPathTrajectoryInitialPoint(const CriticData& data) {
-    // First point should be the same for all trajectories from initial conditions
     const auto dx = data.path.x - data.trajectories.x(0, 0);
     const auto dy = data.path.y - data.trajectories.y(0, 0);
     const auto dists = dx * dx + dy * dy;
@@ -290,7 +272,7 @@ inline void setPathCostsIfNotSet(CriticData& data, const WorldView& world_view) 
  * @param pose pose
  * @param point_x Point to find angle relative to X axis
  * @param point_y Point to find angle relative to Y axis
- * @param forward_preference If reversing direction is valid
+ * @param forward_preference Use only forward heading; false also considers reverse heading
  * @return Angle between two points
  */
 inline float posePointAngle(const geometry_msgs::msg::Pose& pose, double point_x, double point_y,
@@ -311,9 +293,11 @@ inline float posePointAngle(const geometry_msgs::msg::Pose& pose, double point_x
 }
 
 /**
- * @brief Compare to trajectory points to find closest path point along integrated distances
- * @param vec Vect to check
- * @return dist Distance to look for
+ * @brief Find the nearest cumulative path distance, searching from init.
+ * @param vec Cumulative path distances in increasing order
+ * @param dist Target distance
+ * @param init First index to consider
+ * @return Index of the nearest distance, or zero for an empty path
  */
 inline size_t findClosestPathPt(const std::vector<float>& vec, float dist, size_t init = 0) {
     if (vec.empty()) {

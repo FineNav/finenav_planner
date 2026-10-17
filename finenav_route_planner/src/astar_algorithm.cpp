@@ -9,14 +9,10 @@
 
 namespace astar {
 
-// ── constructor ────────────────────────────────────────────────────────────
-
 AStarAlgorithm::AStarAlgorithm(IsWalkableFn is_walkable, GetCostFn get_cost)
     : is_walkable_(std::move(is_walkable)),
       get_cost_(std::move(get_cost))
 {}
-
-// ── findPath ───────────────────────────────────────────────────────────────
 
 std::optional<std::vector<Vec3>> AStarAlgorithm::findPath(
     const Vec3& start,
@@ -99,9 +95,6 @@ std::optional<std::vector<Vec3>> AStarAlgorithm::findPath(
     return std::nullopt;
 }
 
-// ── reconstructPath ───────────────────────────────────────────────────────
-// Delegates to the shared template helper in grid_search_utils.hpp.
-
 std::vector<Vec3> AStarAlgorithm::reconstructPath(const Vec3& goal) const
 {
     return reconstructPathImpl(
@@ -109,20 +102,8 @@ std::vector<Vec3> AStarAlgorithm::reconstructPath(const Vec3& goal) const
         [](const AstarNode& n) { return n.parent; });
 }
 
-// TODO： 要想一个好一点的方式组织，毕竟它只对bfs模式下生效
-// ── findPathToAny ──────────────────────────────────────────────────────────
-//
-// Dijkstra search (h forced to 0) to any cell matching is_goal.
-// The configured heuristic_ is deliberately ignored: without a fixed goal
-// we cannot compute a valid admissible heuristic, so we fall back to
-// uniform-cost expansion.  This is correct (optimal) and consistent with
-// BFS on weighted grids.
-//
-// When accept_goal is provided: a goal cell that passes is_goal but fails
-// accept_goal causes the search to continue (it is recorded as a fallback).
-// If no goal passes accept_goal, the best (lowest-g) fallback is returned
-// so the caller always gets a result when any goal cell is reachable.
-
+// Search goals in accumulated-cost order and retain the lowest-cost
+// rejected goal as a fallback.
 std::optional<std::vector<Vec3>> AStarAlgorithm::findPathToAny(
     const Vec3& start,
     IsGoalFn    is_goal,
@@ -170,7 +151,7 @@ std::optional<std::vector<Vec3>> AStarAlgorithm::findPathToAny(
             if (!accept_goal || accept_goal(current.pos))
                 return reconstructPath(current.pos);
 
-            // Goal found but rejected — record as fallback, continue search
+            // Keep the first rejected goal; it has the lowest accumulated cost.
             if (!best_fallback.has_value())
                 best_fallback = current.pos;
         }
@@ -199,7 +180,7 @@ std::optional<std::vector<Vec3>> AStarAlgorithm::findPathToAny(
         }
     }
 
-    // No accepted goal found — fall back to the best rejected goal
+    // Return the lowest-cost rejected goal if available.
     if (best_fallback.has_value())
         return reconstructPath(*best_fallback);
 

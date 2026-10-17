@@ -4,17 +4,7 @@
 
 #pragma once
 
-// =============================================================
-// grid_search_utils.hpp
-//
-// Shared grid-search primitives used by both AStarAlgorithm and
-// BfsAlgorithm.  Placing them here eliminates duplication and
-// makes the algorithmic differences between A* and BFS clear:
-//
-//   • Everything in this file is identical for A* and BFS.
-//   • A* differs only in: priority_queue + AstarNode (g/h/f).
-//   • BFS differs only in: FIFO queue  + Vec3 parent map.
-// =============================================================
+// Grid connectivity, geometric costs and path reconstruction.
 
 #include <algorithm>
 #include <array>
@@ -26,13 +16,7 @@
 
 namespace astar {
 
-// =============================================================
-// Connectivity  —  shared by AStarAlgorithm and BfsAlgorithm
-// =============================================================
-
 enum class Connectivity { N4, N8, N6, N18, N26 };
-
-// ── Free functions ─────────────────────────────────────────────────────────
 
 /// Returns the grid neighbours of `pos` under the given connectivity.
 inline std::vector<Vec3> getNeighbors(const Vec3& pos, Connectivity c)
@@ -98,20 +82,10 @@ inline double cellDistance(const Vec3& a, const Vec3& b) noexcept
     return std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-// =============================================================
-// reconstructPathImpl
-//
-// Shared back-tracking helper for both A* and BFS.
-//
-//   ParentMapT : unordered_map<Vec3, NodeT, Vec3Hash>
-//   GetParentFn: (const NodeT&) -> Vec3
-//
-// A* passes:  came_from_<Vec3, AstarNode>,  [](auto& n){ return n.parent; }
-// BFS passes: parent_   <Vec3, Vec3>,        [](auto& v){ return v; }
-// =============================================================
-
+/// Reconstruct a path through parent_map using get_parent(const NodeT&) -> Vec3.
+/// The start cell is its own parent.
 template<typename NodeT, typename GetParentFn>
-inline std::vector<Vec3> reconstructPathImpl( // TODO： 之后要想一个语义更好的实现
+inline std::vector<Vec3> reconstructPathImpl(
     const Vec3& goal,
     const std::unordered_map<Vec3, NodeT, Vec3Hash>& parent_map,
     GetParentFn get_parent)

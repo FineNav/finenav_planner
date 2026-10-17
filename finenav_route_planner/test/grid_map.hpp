@@ -10,19 +10,7 @@
 
 namespace astar {
 
-// =============================================================
-// GridMap
-//
-// A simple 2-D grid data container for standalone testing.
-// Cells are indexed by integer (x, y) coordinates.
-//
-// This class has NO FineNav / ROS dependencies and does NOT
-// implement AstarPathSearch::IWorldView directly.  In main.cpp
-// (or any test), wrap it in a concrete IWorldView subclass that
-// calls the cell-query methods below after converting its
-// world-coordinate input with the planner's own resolution.
-// =============================================================
-
+// Test grid with integer (x, y) cell queries and traversal costs.
 class GridMap {
 public:
     GridMap(int width, int height, double default_cost = 0.0)
@@ -30,8 +18,7 @@ public:
           costs_(width * height, default_cost)
     {}
 
-    // ── setters ───────────────────────────────────────────────
-
+    // setters
     void setObstacle(int x, int y, bool obstacle) {
         if (isValid(x, y))
             costs_[idx(x, y)] = obstacle ? INF_COST : 0.0;
@@ -42,8 +29,7 @@ public:
             costs_[idx(x, y)] = cost;
     }
 
-    // ── cell-space queries (used by a wrapping IWorldView) ──────
-
+    // cell-space queries (used by a wrapping IWorldView)
     bool isWalkableCell(int x, int y) const {
         return isValid(x, y) && costs_[idx(x, y)] < INF_COST;
     }
@@ -52,8 +38,7 @@ public:
         return isValid(x, y) ? costs_[idx(x, y)] : INF_COST;
     }
 
-    // ── metadata ──────────────────────────────────────────────
-
+    // metadata
     int getWidth()  const { return width_;  }
     int getHeight() const { return height_; }
 

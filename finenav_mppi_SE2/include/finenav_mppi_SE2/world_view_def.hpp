@@ -10,20 +10,18 @@
 
 namespace finenav_mppi_SE2 {
 /**
-     * @brief Read-only world view used by MPPI critics.
-     *
-     * CostCritic's OpenMPDynamic execution calls getCost() and isCollision()
-     * concurrently on the same instance. Implementations used
-     * with this execution mode must therefore support concurrent const reads and must
-     * not mutate an unsynchronized cache from these methods.
-     */
+ * @brief Read-only world view used by MPPI critics.
+ *
+ * Implementations used with CostCritic's OpenMPDynamic mode must support
+ * concurrent const queries on the same instance, including synchronized caches.
+ */
 class IWorldView {
   public:
     IWorldView() = default;
     virtual ~IWorldView() = default;
     virtual bool isCollision(float x, float y, float theta) const = 0;
 
-    // 获取地图索引处的代价值（根据项目需要可改为返回 unsigned char 等）
+    // Cost at the queried pose in the world view's coordinate frame.
     virtual int getCost(float x, float y, float theta) const = 0;
 
 };
