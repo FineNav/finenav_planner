@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
-#include "finenav_route_planner/astar_algorithm.hpp"
+#include "finenav_route_planner/astar/astar_algorithm.hpp"
 #include "finenav_route_planner/bfs_path_search.hpp"
 #include "grid_map.hpp"
 
