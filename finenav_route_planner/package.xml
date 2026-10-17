@@ -9,9 +9,8 @@
     <name>finenav_route_planner</name>
     <version>0.1.0</version>
     <description>
-        FineNav-Engine planners: grid A* (AstarPathSearch), grid BFS (BfsPathSearch),
-        and topological route (RoutePathSearch). Self-contained with no intra-finenav_planner
-        cross-package dependencies.
+        FineNav-Engine planners: grid A* (AstarPathSearch) and grid BFS (BfsPathSearch).
+        Self-contained with no intra-finenav_planner cross-package dependencies.
     </description>
 
     <maintainer email="wangjinghui@sjtu.edu.cn">Jinghui Wang</maintainer>
@@ -28,7 +27,6 @@
     <depend>finenav_core</depend>
     <depend>generate_parameter_library</depend>
     <depend>opencv</depend>
-    <depend>nlohmann-json-dev</depend>
 
     <export>
         <build_type>ament_cmake</build_type>

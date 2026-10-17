@@ -17,7 +17,6 @@ find_package(generate_parameter_library REQUIRED)
 # ── parameter libraries (generated from YAML) ──────────────────────────────
 generate_parameter_library(astar_params  astar.yaml)
 generate_parameter_library(bfs_params    bfs.yaml)
-generate_parameter_library(route_params  route.yaml)
 
 # ── planner library ─────────────────────────────────────────────────────────
 ament_auto_add_library(finenav_route_planner_lib SHARED
@@ -26,16 +25,10 @@ ament_auto_add_library(finenav_route_planner_lib SHARED
     # Grid planner wrappers (FineNav PlannerConcept)
     src/astar_path_search.cpp
     src/bfs_path_search.cpp          # BFS = AStarAlgorithm(Heuristic::Zero)
-    # Topological route planner (FineNav PlannerConcept)
-    src/route_path_search.cpp
-    # Route internals — graph loading (GeoJSON) + Dijkstra search
-    src/route/route_graph.cpp
-    src/route/route_search.cpp
 )
 target_link_libraries(finenav_route_planner_lib
     astar_params
     bfs_params
-    route_params
     ${OpenCV_LIBS}
     Eigen3::Eigen
 )
@@ -61,20 +54,9 @@ if (BUILD_TESTING)
     ament_target_dependencies(bfs_test finenav_core finenav_common finenav_interfaces)
     target_include_directories(bfs_test PRIVATE test)
     target_link_libraries(bfs_test bfs_params)
-
-    ament_add_gtest(route_test
-        test/route_test.cpp
-        src/astar_algorithm.cpp        # used internally for obstacle-aware node snapping
-        src/route_path_search.cpp
-        src/route/route_graph.cpp
-        src/route/route_search.cpp
-    )
-    ament_target_dependencies(route_test finenav_core finenav_common finenav_interfaces geometry_msgs std_msgs)
-    target_include_directories(route_test PRIVATE test)
-    target_link_libraries(route_test route_params)
 endif ()
 
-install(TARGETS astar_params bfs_params route_params
+install(TARGETS astar_params bfs_params
         EXPORT export_${PROJECT_NAME}_params
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
