@@ -10,8 +10,8 @@
 #include "finenav_core/plugin_planner.hpp"
 #include "finenav_route_planner/astar_params.hpp"
 
-#include "finenav_route_planner/astar_algorithm.hpp"
-#include "finenav_route_planner/world_view.hpp"
+#include "finenav_route_planner/astar/astar_algorithm.hpp"
+#include "finenav_route_planner/common/world_view.hpp"
 
 namespace finenav {
 using finenav::common::Position3D;

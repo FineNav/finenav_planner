@@ -28,6 +28,8 @@
     <depend>generate_parameter_library</depend>
     <depend>opencv</depend>
 
+    <test_depend>benchmark</test_depend>
+
     <export>
         <build_type>ament_cmake</build_type>
     </export>

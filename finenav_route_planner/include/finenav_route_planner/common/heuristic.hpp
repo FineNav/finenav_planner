@@ -6,7 +6,7 @@
 
 #include <cmath>
 #include <algorithm>
-#include "finenav_route_planner/vec3.hpp"
+#include "finenav_route_planner/common/vec3.hpp"
 
 namespace astar {
 
@@ -15,7 +15,11 @@ enum class Heuristic {
     Zero,
     Euclidean,
     Manhattan,
-    Chebyshev
+    Chebyshev,
+    // 3-D octile (diagonal) distance. Admissible for 8-connected grids when
+    // the diagonal step cost = √2 (and 3-D corner step = √3). Recommended as
+    // the D* Lite default heuristic.
+    Diagonal
 };
 
 // Cell-space distance; 2-D grids use z = 0.
@@ -38,6 +42,19 @@ inline double calculateHeuristic(
         return std::max({std::abs(from.x - to.x),
                          std::abs(from.y - to.y),
                          std::abs(from.z - to.z)});
+    case Heuristic::Diagonal: {
+        // Octile / diagonal distance: moving along 2 axes at once costs √2.
+        // Shared with D* Lite (recommended default heuristic for 8-connectivity).
+        const double dx = std::abs(from.x - to.x);
+        const double dy = std::abs(from.y - to.y);
+        const double dz = std::abs(from.z - to.z);
+        const double dmin = std::min({dx, dy, dz});
+        const double dmax = std::max({dx, dy, dz});
+        const double dmid = dx + dy + dz - dmin - dmax;
+        return dmin * std::sqrt(3.0)
+             + (dmid - dmin) * std::sqrt(2.0)
+             + (dmax - dmid);
+    }
     default:
         return 0.0;
     }

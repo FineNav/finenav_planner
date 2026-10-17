@@ -13,8 +13,8 @@
 #include <limits>
 #include <cmath>
 
-#include "finenav_route_planner/grid_search_utils.hpp"
-#include "finenav_route_planner/heuristic.hpp"
+#include "finenav_route_planner/common/grid_search_utils.hpp"
+#include "finenav_route_planner/common/heuristic.hpp"
 
 namespace astar {
 
