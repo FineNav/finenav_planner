@@ -9,7 +9,7 @@
     <name>finenav_route_planner</name>
     <version>0.1.0</version>
     <description>
-        FineNav-Engine planners: grid A* (AstarPathSearch) and grid BFS (BfsPathSearch).
+        FineNav-Engine planners: grid A*, Dijkstra, D* Lite incremental search, and local detours.
         Self-contained with no intra-finenav_planner cross-package dependencies.
     </description>
 
