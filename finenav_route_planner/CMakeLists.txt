@@ -8,6 +8,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 find_package(ament_cmake_auto REQUIRED)
+find_package(finenav_cmake REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 include_directories(include ${OpenCV_INCLUDE_DIRS})
@@ -97,5 +98,7 @@ install(TARGETS astar_params bfs_params dstarlite_params detour_params
 )
 ament_export_targets(export_${PROJECT_NAME}_params HAS_LIBRARY_TARGET)
 install(FILES LICENSE DESTINATION share/${PROJECT_NAME})
+
+finenav_register_algo_plugin(finenav_route_planner_lib)
 
 ament_auto_package(USE_SCOPED_HEADER_INSTALL_DIR)

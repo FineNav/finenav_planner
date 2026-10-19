@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(ament_cmake REQUIRED)
+find_package(finenav_cmake REQUIRED)
 
 set(dependencies
   rclcpp
@@ -54,5 +55,7 @@ ament_export_libraries(finenav_rotate_shim)
 ament_export_dependencies(${dependencies})
 install(FILES LICENSE NOTICE DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY LICENSES DESTINATION share/${PROJECT_NAME})
+
+finenav_register_algo_plugin(finenav_rotate_shim)
 
 ament_package()

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(finenav_mppi_SE2)
 
 find_package(ament_cmake REQUIRED)
+find_package(finenav_cmake REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenMP REQUIRED)
@@ -113,6 +114,8 @@ foreach(lib IN LISTS libraries)
   )
   ament_target_dependencies(${lib} ${dependencies_pkgs})
 endforeach()
+
+target_link_libraries(finenav_mppi_SE2 finenav_mppi_SE2_critics)
 
 install(
   TARGETS ${libraries} finenav_mppi_SE2_params
@@ -263,5 +266,7 @@ ament_export_include_directories(include/${PROJECT_NAME})
 
 install(FILES LICENSE NOTICE DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY LICENSES DESTINATION share/${PROJECT_NAME})
+
+finenav_register_algo_plugin(finenav_mppi_SE2)
 
 ament_package()

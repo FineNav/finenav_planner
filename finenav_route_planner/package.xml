@@ -17,6 +17,7 @@
     <license>MPL-2.0</license>
 
     <buildtool_depend>ament_cmake_auto</buildtool_depend>
+    <build_depend>finenav_cmake</build_depend>
 
     <depend>std_msgs</depend>
     <depend>finenav_interfaces</depend>
