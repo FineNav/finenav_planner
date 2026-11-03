@@ -338,12 +338,23 @@ TEST(OptimizerResultTest, ReverseAccelerationUsesTravelDirection) {
     EXPECT_FLOAT_EQ(optimizer.candidateState().vx(0, 1), -1.0F);
 }
 
-TEST(OptimizerResultTest, FeedbackAboveVelocityLimitKeepsAccelerationBound) {
-    const float projected = MotionModel::projectVelocity(0.0F, 0.8F, -0.5F, 0.5F, -0.2F, 0.2F, 0.1F);
+TEST(OptimizerResultTest, FeedbackAboveVelocityLimitBrakesRegardlessOfRequest) {
+    for (const float request : {0.0F, 0.5F, 2.0F}) {
+        const float projected = MotionModel::projectVelocity(request, 0.8F, -0.5F, 0.5F, -0.2F, 0.2F, 0.1F);
+        EXPECT_NEAR(projected, 0.78F, 1e-6F);
+    }
+}
 
-    // The measured feedback is the physical anchor. The requested command
-    // cannot jump from 0.8 m/s to the absolute limit in one 0.1 s step.
-    EXPECT_NEAR(projected, 0.78F, 1e-6F);
+TEST(OptimizerResultTest, FeedbackBelowVelocityLimitBrakesRegardlessOfRequest) {
+    for (const float request : {-2.0F, -0.5F, 0.0F}) {
+        const float projected = MotionModel::projectVelocity(request, -0.8F, -0.5F, 0.5F, -0.2F, 0.2F, 0.1F);
+        EXPECT_NEAR(projected, -0.78F, 1e-6F);
+    }
+}
+
+TEST(OptimizerResultTest, FeedbackWithinVelocityLimitKeepsNormalProjection) {
+    const float projected = MotionModel::projectVelocity(2.0F, 0.3F, 0.0F, 0.4F, -3.0F, 3.0F, 0.05F);
+    EXPECT_NEAR(projected, 0.4F, 1e-6F);
 }
 
 TEST(OptimizerResultTest, AngularFeedbackAboveVelocityLimitKeepsAccelerationBound) {

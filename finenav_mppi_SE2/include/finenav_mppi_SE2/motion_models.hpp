@@ -116,12 +116,10 @@ class MotionModel {
         const float lower = std::max(velocity_min, reachable_lower);
         const float upper = std::min(velocity_max, reachable_upper);
 
-        // If feedback is already outside the configured velocity envelope, the
-        // absolute and acceleration intervals can be disjoint. Preserve the
-        // physically reachable interval instead of creating an instantaneous
-        // velocity jump by clamping feedback before applying acceleration limits.
+        // When feedback is outside the velocity envelope, move toward the nearest
+        // bound at the maximum permitted deceleration, regardless of the request.
         if (lower > upper) {
-            return std::clamp(requested, reachable_lower, reachable_upper);
+            return reachable_lower > velocity_max ? reachable_lower : reachable_upper;
         }
 
         return std::clamp(requested, lower, upper);
