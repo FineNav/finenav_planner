@@ -145,6 +145,12 @@ class Optimizer {
                                    const finenav_mppi_SE2::IWorldView& world_view) {
         prepare(robot_pose, robot_speed, plan);
 
+        if (motion_model_->shouldStopForVelocityLimits(robot_speed.linear.x, robot_speed.linear.y,
+                                                        robot_speed.angular.z)) {
+            control_sequence_.reset(settings_.time_steps);
+            return finalizeControlSequence();
+        }
+
         do {
             optimize(world_view);
         } while (fallback(critics_data_.fail_flag));

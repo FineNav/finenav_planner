@@ -58,6 +58,15 @@ class MotionModel {
         constraints_configured_ = true;
     }
 
+    bool shouldStopForVelocityLimits(float vx, float vy, float wz) {
+        return !velocityIntervalsIntersect(vx, constraints_.vx_min, constraints_.vx_max,
+                                           constraints_.ax_min, constraints_.ax_max, model_dt_) ||
+               (isHolonomic() && !velocityIntervalsIntersect(vy, -constraints_.vy, constraints_.vy,
+                                                               constraints_.ay_min, constraints_.ay_max, model_dt_)) ||
+               !velocityIntervalsIntersect(wz, -constraints_.wz, constraints_.wz,
+                                           -constraints_.az_max, constraints_.az_max, model_dt_);
+    }
+
     /**
    * @brief With input velocities, find the vehicle's output velocities
    * @param state Contains control velocities to use to populate vehicle velocities
@@ -116,10 +125,9 @@ class MotionModel {
         const float lower = std::max(velocity_min, reachable_lower);
         const float upper = std::min(velocity_max, reachable_upper);
 
-        // When feedback is outside the velocity envelope, move toward the nearest
-        // bound at the maximum permitted deceleration, regardless of the request.
+        // No velocity satisfies both the feedback reachability and speed limits.
         if (lower > upper) {
-            return reachable_lower > velocity_max ? reachable_lower : reachable_upper;
+            return 0.0F;
         }
 
         return std::clamp(requested, lower, upper);
@@ -150,6 +158,16 @@ class MotionModel {
     virtual void applyConstraints(models::ControlSequence& /*control_sequence*/) {}
 
   protected:
+    static bool velocityIntervalsIntersect(float previous, float velocity_min, float velocity_max,
+                                           float acceleration_min, float acceleration_max, float dt) {
+        const bool reverse = previous < -1e-6F;
+        const float acceleration_lower = reverse ? -acceleration_max : acceleration_min;
+        const float acceleration_upper = reverse ? -acceleration_min : acceleration_max;
+        const float reachable_lower = previous + acceleration_lower * dt;
+        const float reachable_upper = previous + acceleration_upper * dt;
+        return std::max(velocity_min, reachable_lower) <= std::min(velocity_max, reachable_upper);
+    }
+
     models::ControlConstraints constraints_{};
     float model_dt_{0.0F};
     bool constraints_configured_{false};

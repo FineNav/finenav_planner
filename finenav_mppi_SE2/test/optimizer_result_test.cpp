@@ -10,6 +10,7 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "finenav_mppi_SE2/optimizer.hpp"
@@ -338,23 +339,96 @@ TEST(OptimizerResultTest, ReverseAccelerationUsesTravelDirection) {
     EXPECT_FLOAT_EQ(optimizer.candidateState().vx(0, 1), -1.0F);
 }
 
-TEST(OptimizerResultTest, FeedbackAboveVelocityLimitBrakesRegardlessOfRequest) {
+TEST(OptimizerResultTest, FeedbackAboveVelocityLimitStopsRegardlessOfRequest) {
     for (const float request : {0.0F, 0.5F, 2.0F}) {
         const float projected = MotionModel::projectVelocity(request, 0.8F, -0.5F, 0.5F, -0.2F, 0.2F, 0.1F);
-        EXPECT_NEAR(projected, 0.78F, 1e-6F);
+        EXPECT_NEAR(projected, 0.0F, 1e-6F);
     }
 }
 
-TEST(OptimizerResultTest, FeedbackBelowVelocityLimitBrakesRegardlessOfRequest) {
+TEST(OptimizerResultTest, FeedbackBelowVelocityLimitStopsRegardlessOfRequest) {
     for (const float request : {-2.0F, -0.5F, 0.0F}) {
         const float projected = MotionModel::projectVelocity(request, -0.8F, -0.5F, 0.5F, -0.2F, 0.2F, 0.1F);
-        EXPECT_NEAR(projected, -0.78F, 1e-6F);
+        EXPECT_NEAR(projected, 0.0F, 1e-6F);
     }
 }
 
 TEST(OptimizerResultTest, FeedbackWithinVelocityLimitKeepsNormalProjection) {
     const float projected = MotionModel::projectVelocity(2.0F, 0.3F, 0.0F, 0.4F, -3.0F, 3.0F, 0.05F);
     EXPECT_NEAR(projected, 0.4F, 1e-6F);
+}
+
+TEST(OptimizerResultTest, StopCheckUsesApplicableVelocityAxes) {
+    models::ControlConstraints constraints;
+    constraints.vx_min = -0.4F;
+    constraints.vx_max = 0.4F;
+    constraints.vy = 0.4F;
+    constraints.wz = 0.4F;
+    constraints.ax_min = -3.0F;
+    constraints.ax_max = 3.0F;
+    constraints.ay_min = -3.0F;
+    constraints.ay_max = 3.0F;
+    constraints.az_max = 3.0F;
+
+    DiffDriveMotionModel diff_drive;
+    diff_drive.setConstraints(constraints, 0.05F);
+    EXPECT_FALSE(diff_drive.shouldStopForVelocityLimits(0.0F, 0.58F, 0.0F));
+    EXPECT_TRUE(diff_drive.shouldStopForVelocityLimits(0.58F, 0.0F, 0.0F));
+    EXPECT_TRUE(diff_drive.shouldStopForVelocityLimits(-0.58F, 0.0F, 0.0F));
+    EXPECT_TRUE(diff_drive.shouldStopForVelocityLimits(0.0F, 0.0F, 0.58F));
+    EXPECT_TRUE(diff_drive.shouldStopForVelocityLimits(0.0F, 0.0F, -0.58F));
+    EXPECT_FALSE(diff_drive.shouldStopForVelocityLimits(0.55F, 0.0F, 0.55F));
+
+    OmniMotionModel omni;
+    omni.setConstraints(constraints, 0.05F);
+    EXPECT_TRUE(omni.shouldStopForVelocityLimits(0.0F, 0.58F, 0.0F));
+    EXPECT_TRUE(omni.shouldStopForVelocityLimits(0.0F, -0.58F, 0.0F));
+}
+
+TEST(OptimizerResultTest, DisjointFeedbackVelocityReturnsZeroControlSequence) {
+    TestWorldView world_view;
+    geometry_msgs::msg::PoseStamped pose;
+    pose.pose.position.x = 1.0;
+    pose.pose.position.y = 2.0;
+    pose.pose.orientation.w = 1.0;
+    nav_msgs::msg::Path path;
+
+    for (const auto& [motion_model, vx, vy, wz] : {
+             std::tuple{"DiffDrive", 0.58, 0.0, 0.0},
+             std::tuple{"Omni", 0.0, 0.58, 0.0},
+             std::tuple{"DiffDrive", 0.0, 0.0, 0.58}}) {
+        finenav_mppi_SE2::Params params;
+        params.motion_model = motion_model;
+        params.vx_min = -0.4;
+        params.vx_max = 0.4;
+        params.vy_max = 0.4;
+        params.wz_max = 0.4;
+        params.ax_min = -3.0;
+        params.ax_max = 3.0;
+        params.ay_min = -3.0;
+        params.ay_max = 3.0;
+        params.az_max = 3.0;
+        params.time_steps = 3;
+        params.batch_size = 2;
+        params.regenerate_noises = false;
+
+        Optimizer optimizer;
+        std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+        optimizer.initialize("test", critics, params);
+        geometry_msgs::msg::Twist speed;
+        speed.linear.x = vx;
+        speed.linear.y = vy;
+        speed.angular.z = wz;
+
+        const auto result = optimizer.evalControl(pose, speed, path, world_view);
+        EXPECT_EQ(result.controls.rows(), 3);
+        EXPECT_TRUE(result.controls.isZero());
+        for (Eigen::Index i = 0; i < result.trajectory.rows(); ++i) {
+            EXPECT_FLOAT_EQ(result.trajectory(i, 0), 1.0F);
+            EXPECT_FLOAT_EQ(result.trajectory(i, 1), 2.0F);
+            EXPECT_FLOAT_EQ(result.trajectory(i, 2), 0.0F);
+        }
+    }
 }
 
 TEST(OptimizerResultTest, AngularFeedbackAboveVelocityLimitKeepsAccelerationBound) {
