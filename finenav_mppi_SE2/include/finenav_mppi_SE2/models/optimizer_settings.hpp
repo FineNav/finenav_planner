@@ -49,6 +49,12 @@ struct OptimizerSettings {
     unsigned int time_steps{0};
     unsigned int iteration_count{0};
     size_t retry_attempt_limit{0};
+    bool adaptive_horizon{true};
+    unsigned int min_time_steps{10};
+    bool consider_goal_angle{true};
+    double adaptive_horizon_linear_vel{0.25};
+    double adaptive_horizon_angular_vel{0.5};
+    float threshold_to_consider{0.5F};
 };
 
 }  // namespace mppi::models

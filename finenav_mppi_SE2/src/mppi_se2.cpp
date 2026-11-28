@@ -29,8 +29,10 @@
 
 #include "finenav_mppi_SE2/mppi_se2.hpp"
 
+#include <bit>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -41,6 +43,13 @@
 namespace finenav_mppi_SE2 {
 
 namespace {
+bool isPositiveFinite(double value) {
+    // This translation unit is built with -ffast-math, which assumes finite floating-point values.
+    constexpr std::uint64_t positive_infinity = 0x7FF0000000000000ULL;
+    const auto bits = std::bit_cast<std::uint64_t>(value);
+    return bits > 0 && bits < positive_infinity;
+}
+
 template <typename DataPacketT>
 nav_msgs::msg::Path toPath(const DataPacketT& data, const std::string& frame_id) {
     nav_msgs::msg::Path path;
@@ -77,6 +86,13 @@ void MPPISE2::setVisualizer(const finenav::viz::FineNavVisualizer& visualizer) {
 
 void MPPISE2::configure(const ConfigType& params) {
     optimizer_.setLogger(logger_);
+    if (params.min_time_steps <= 0) {
+        throw std::invalid_argument("min_time_steps must be greater than zero");
+    }
+    if (!isPositiveFinite(params.adaptive_horizon_linear_vel) ||
+        !isPositiveFinite(params.adaptive_horizon_angular_vel)) {
+        throw std::invalid_argument("Adaptive horizon speeds must be finite and greater than zero");
+    }
     if (params.CostCritic.num_threads <= 0 || params.CostCritic.chunk_size <= 0) {
         throw std::invalid_argument("CostCritic.num_threads and CostCritic.chunk_size must be greater than zero");
     }

@@ -71,7 +71,7 @@ class NoiseGenerator {
     void generateNextNoises();
 
     /**
-     * @brief Add stored noise to the control sequence and populate state.cvx/cvy/cwz.
+     * @brief Populate the active columns of state.cvx/cvy/cwz from the control and noise prefixes.
      */
     void setNoisedControls(models::State& state, const models::ControlSequence& control_sequence);
 

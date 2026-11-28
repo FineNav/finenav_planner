@@ -7,7 +7,9 @@
 
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -40,6 +42,18 @@ class TrackingCritic : public critics::CriticFunction {
     int& score_count_;
 };
 
+class RetryOnceCritic : public critics::CriticFunction {
+  public:
+    void initialize(const finenav_mppi_SE2::Params&) override {}
+
+    void score(CriticData& data, const finenav_mppi_SE2::IWorldView&) override {
+        scored_steps.push_back(data.trajectories.x.cols());
+        data.fail_flag = scored_steps.size() == 1;
+    }
+
+    std::vector<Eigen::Index> scored_steps;
+};
+
 class TestOptimizer : public Optimizer {
   public:
     class RecordingMotionModel : public DiffDriveMotionModel {
@@ -70,6 +84,7 @@ class TestOptimizer : public Optimizer {
 
     void setKnownControlSequence() {
         settings_.time_steps = 3;
+        active_time_steps_ = settings_.time_steps;
         settings_.model_dt = 1.0f;
         settings_.constraints.vx_min = -10.0f;
         settings_.constraints.vx_max = 10.0f;
@@ -88,6 +103,7 @@ class TestOptimizer : public Optimizer {
 
     void setTurningControlSequence() {
         settings_.time_steps = 1;
+        active_time_steps_ = settings_.time_steps;
         settings_.model_dt = 1.0f;
         settings_.constraints.vx_min = -10.0f;
         settings_.constraints.vx_max = 10.0f;
@@ -139,6 +155,14 @@ class TestOptimizer : public Optimizer {
     OptimizationResult finalize() { return finalizeControlSequence(); }
 
     const models::ControlSequence& internalControlSequence() const { return control_sequence_; }
+
+    void seedWarmStart() {
+        control_sequence_.vx.setLinSpaced(1.0F, static_cast<float>(settings_.time_steps));
+        control_sequence_.vy = -control_sequence_.vx;
+        control_sequence_.wz = 2.0F * control_sequence_.vx;
+    }
+
+    using Optimizer::prepare;
 
     void configureConstraints() {
         finenav_mppi_SE2::Params params;
@@ -203,6 +227,7 @@ class TestOptimizer : public Optimizer {
 
     void setOmniLateralControlSequence() {
         settings_.time_steps = 3;
+        active_time_steps_ = settings_.time_steps;
         settings_.model_dt = 0.1F;
         settings_.constraints = {10.0F, -10.0F, 10.0F, 10.0F, -10.0F, 10.0F, -1.0F, 1.0F, 10.0F};
         motion_model_ = std::make_shared<OmniMotionModel>();
@@ -218,6 +243,7 @@ class TestOptimizer : public Optimizer {
 
     void setAckermannControl(float vx, float requested_wz, float previous_wz) {
         settings_.time_steps = 1;
+        active_time_steps_ = settings_.time_steps;
         settings_.model_dt = 0.1F;
         settings_.constraints = {2.0F, -2.0F, 0.0F, 2.0F, -10.0F, 10.0F, -1.0F, 1.0F, 1.0F};
         motion_model_ = std::make_shared<AckermannMotionModel>();
@@ -235,6 +261,7 @@ class TestOptimizer : public Optimizer {
     std::shared_ptr<RecordingAckermannMotionModel> setRecordingAckermannControl(float vx, float requested_wz,
                                                                                 float previous_wz) {
         settings_.time_steps = 1;
+        active_time_steps_ = settings_.time_steps;
         settings_.model_dt = 0.1F;
         settings_.constraints = {2.0F, -2.0F, 0.0F, 2.0F, -10.0F, 10.0F, -1.0F, 1.0F, 1.0F};
         auto motion_model = std::make_shared<RecordingAckermannMotionModel>();
@@ -305,6 +332,213 @@ TEST(OptimizerResultTest, PrepareCalculatesLocalPathLengthAlongAllSegments) {
     const float length = optimizer.prepareAndGetLocalPathLength(path);
 
     EXPECT_FLOAT_EQ(length, 9.0F);
+}
+
+geometry_msgs::msg::PoseStamped makePose(double x, double yaw = 0.0) {
+    geometry_msgs::msg::PoseStamped pose;
+    pose.pose.position.x = x;
+    pose.pose.orientation.z = std::sin(yaw / 2.0);
+    pose.pose.orientation.w = std::cos(yaw / 2.0);
+    return pose;
+}
+
+finenav_mppi_SE2::Params makeHorizonParams() {
+    finenav_mppi_SE2::Params params;
+    params.model_dt = 0.125;
+    params.min_time_steps = 2;
+    params.batch_size = 16;
+    params.regenerate_noises = false;
+    params.vx_min = -0.6;
+    params.ax_min = -0.5;
+    return params;
+}
+
+void expectResultHorizon(const OptimizationResult& result, Eigen::Index steps) {
+    EXPECT_EQ(result.controls.rows(), steps);
+    EXPECT_EQ(result.trajectory.rows(), steps);
+    EXPECT_EQ(result.controls.cols(), 3);
+    EXPECT_EQ(result.trajectory.cols(), 3);
+    // These tests inherit -ffast-math, so verify finiteness through the exponent bits.
+    for (const auto* matrix : {&result.controls, &result.trajectory}) {
+        for (Eigen::Index i = 0; i < matrix->size(); ++i) {
+            EXPECT_NE(std::bit_cast<std::uint32_t>(matrix->data()[i]) & 0x7F800000U, 0x7F800000U);
+        }
+    }
+}
+
+TEST(OptimizerResultTest, AdaptiveHorizonUsesPathLengthAndGoalDistance) {
+    const auto params = makeHorizonParams();
+    Optimizer optimizer;
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    optimizer.initialize("test", critics, params);
+    const auto pose = makePose(0.0);
+    const geometry_msgs::msg::Twist speed;
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+
+    expectResultHorizon(optimizer.evalControl(pose, speed, path, world_view), params.time_steps);
+
+    path.poses = {makePose(0.02)};
+    expectResultHorizon(optimizer.evalControl(pose, speed, path, world_view),
+                        params.min_time_steps);
+
+    path.poses = {makePose(0.2)};
+    expectResultHorizon(optimizer.evalControl(pose, speed, path, world_view), 7);
+
+    path.poses = {pose, makePose(0.25), pose};
+    expectResultHorizon(optimizer.evalControl(pose, speed, path, world_view), 16);
+
+    path.poses = {pose, makePose(0.51)};
+    expectResultHorizon(optimizer.evalControl(pose, speed, path, world_view), params.time_steps);
+}
+
+TEST(OptimizerResultTest, AdaptiveHorizonUsesShortestHeadingChangeAndBrakingTime) {
+    auto params = makeHorizonParams();
+    Optimizer optimizer;
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    optimizer.initialize("test", critics, params);
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+    geometry_msgs::msg::Twist speed;
+
+    path.poses = {makePose(0.02, -M_PI + 0.4)};
+    const auto angled_pose = makePose(0.0, M_PI - 0.4);
+    expectResultHorizon(optimizer.evalControl(angled_pose, speed, path, world_view), 13);
+
+    path.poses = {makePose(0.02)};
+    speed.linear.x = -0.45;
+    expectResultHorizon(optimizer.evalControl(makePose(0.0), speed, path, world_view), 8);
+
+    params.ax_min = 0.0;
+    optimizer.initialize("test", critics, params);
+    expectResultHorizon(optimizer.evalControl(makePose(0.0), speed, path, world_view),
+                        params.min_time_steps);
+}
+
+TEST(OptimizerResultTest, DisabledGoalAngleCriticDoesNotExtendAdaptiveHorizon) {
+    auto params = makeHorizonParams();
+    params.GoalAngleCritic.enabled = false;
+    Optimizer optimizer;
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    optimizer.initialize("test", critics, params);
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+    path.poses = {makePose(0.02, M_PI / 2.0)};
+    const geometry_msgs::msg::Twist speed;
+
+    const auto result = optimizer.evalControl(makePose(0.0), speed, path, world_view);
+
+    expectResultHorizon(result, params.min_time_steps);
+}
+
+TEST(OptimizerResultTest, NonPositiveMinimumHorizonIsClampedDuringInitialize) {
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+    path.poses = {makePose(0.02)};
+    const geometry_msgs::msg::Twist speed;
+
+    for (const std::int64_t min_time_steps : {0, -5}) {
+        auto params = makeHorizonParams();
+        params.min_time_steps = min_time_steps;
+        Optimizer optimizer;
+        std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+        optimizer.initialize("test", critics, params);
+
+        const auto result = optimizer.evalControl(makePose(0.0), speed, path, world_view);
+
+        expectResultHorizon(result, 1);
+    }
+}
+
+TEST(OptimizerResultTest, AdaptiveHorizonShiftsActiveControlsAndClearsTail) {
+    auto params = makeHorizonParams();
+    params.motion_model = "Omni";
+    params.vy_max = 0.5;
+    params.regenerate_noises = true;
+    TestOptimizer optimizer;
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    optimizer.initialize("test", critics, params);
+    TestWorldView world_view;
+    const auto pose = makePose(0.0);
+    const geometry_msgs::msg::Twist speed;
+    nav_msgs::msg::Path near_path;
+    near_path.poses = {makePose(0.02)};
+    nav_msgs::msg::Path far_path;
+    far_path.poses = {pose, makePose(1.0)};
+
+    expectResultHorizon(optimizer.evalControl(pose, speed, far_path, world_view),
+                        params.time_steps);
+    optimizer.seedWarmStart();
+    optimizer.prepare(pose, speed, near_path);
+    const auto result = optimizer.finalize();
+    expectResultHorizon(result, 2);
+    EXPECT_EQ(optimizer.getGeneratedTrajectories().x.cols(), 2);
+
+    const auto& warm_start = optimizer.internalControlSequence();
+    ASSERT_EQ(warm_start.vx.size(), params.time_steps);
+    ASSERT_EQ(warm_start.vy.size(), params.time_steps);
+    ASSERT_EQ(warm_start.wz.size(), params.time_steps);
+    EXPECT_TRUE(warm_start.vx.head(2).isConstant(2.0F));
+    EXPECT_TRUE(warm_start.vy.head(2).isConstant(-2.0F));
+    EXPECT_TRUE(warm_start.wz.head(2).isConstant(4.0F));
+    EXPECT_TRUE(warm_start.vx.tail(params.time_steps - 2).isZero());
+    EXPECT_TRUE(warm_start.vy.tail(params.time_steps - 2).isZero());
+    EXPECT_TRUE(warm_start.wz.tail(params.time_steps - 2).isZero());
+
+    expectResultHorizon(optimizer.evalControl(pose, speed, near_path, world_view), 2);
+    optimizer.prepare(pose, speed, far_path);
+    EXPECT_TRUE(optimizer.getControlSequence().bottomRows(params.time_steps - 2).isZero());
+    expectResultHorizon(optimizer.evalControl(pose, speed, far_path, world_view),
+                        params.time_steps);
+    EXPECT_EQ(optimizer.getGeneratedTrajectories().x.cols(), params.time_steps);
+
+    expectResultHorizon(optimizer.evalControl(pose, speed, near_path, world_view), 2);
+    optimizer.reset();
+    EXPECT_EQ(optimizer.getControlSequence().rows(), params.time_steps);
+    EXPECT_TRUE(optimizer.getControlSequence().isZero());
+    EXPECT_EQ(optimizer.getGeneratedTrajectories().x.cols(), params.time_steps);
+    expectResultHorizon(optimizer.evalControl(pose, speed, near_path, world_view), 2);
+}
+
+TEST(OptimizerResultTest, RetryKeepsAdaptiveHorizon) {
+    const auto params = makeHorizonParams();
+    Optimizer optimizer;
+    auto critic = std::make_unique<RetryOnceCritic>();
+    const auto* const observed = critic.get();
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    critics.push_back(std::move(critic));
+    optimizer.initialize("test", critics, params);
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+    path.poses = {makePose(0.02)};
+
+    const geometry_msgs::msg::Twist speed;
+    const auto result = optimizer.evalControl(makePose(0.0), speed, path, world_view);
+
+    expectResultHorizon(result, 2);
+    EXPECT_EQ(observed->scored_steps, (std::vector<Eigen::Index>{2, 2}));
+}
+
+TEST(OptimizerResultTest, VelocityLimitStopReturnsOnlyActiveZeroControls) {
+    const auto params = makeHorizonParams();
+    TestOptimizer optimizer;
+    std::vector<std::unique_ptr<critics::CriticFunction>> critics;
+    optimizer.initialize("test", critics, params);
+    optimizer.seedWarmStart();
+    TestWorldView world_view;
+    nav_msgs::msg::Path path;
+    path.poses = {makePose(0.02)};
+    geometry_msgs::msg::Twist speed;
+    speed.angular.z = params.wz_max + params.az_max * params.model_dt + 0.1;
+
+    const auto result = optimizer.evalControl(makePose(0.0), speed, path, world_view);
+
+    expectResultHorizon(result, 2);
+    EXPECT_TRUE(result.controls.isZero());
+    EXPECT_TRUE(result.trajectory.isZero());
+    EXPECT_TRUE(optimizer.internalControlSequence().vx.isZero());
+    EXPECT_TRUE(optimizer.internalControlSequence().vy.isZero());
+    EXPECT_TRUE(optimizer.internalControlSequence().wz.isZero());
 }
 
 TEST(OptimizerResultTest, CandidatePropagationUsesMotionModelPredict) {

@@ -32,7 +32,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -41,6 +43,7 @@
 
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 
+#include "angles/angles.h"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -105,6 +108,12 @@ class Optimizer {
 
         s.model_dt = static_cast<float>(p.model_dt);
         s.time_steps = static_cast<unsigned int>(p.time_steps);
+        s.adaptive_horizon = p.adaptive_horizon;
+        s.min_time_steps = static_cast<unsigned int>(std::max<std::int64_t>(1, p.min_time_steps));
+        s.consider_goal_angle = p.GoalAngleCritic.enabled;
+        s.adaptive_horizon_linear_vel = p.adaptive_horizon_linear_vel;
+        s.adaptive_horizon_angular_vel = p.adaptive_horizon_angular_vel;
+        s.threshold_to_consider = static_cast<float>(p.threshold_to_consider);
         s.batch_size = static_cast<unsigned int>(p.batch_size);
         s.iteration_count = static_cast<unsigned int>(p.iteration_count);
         s.temperature = static_cast<float>(p.temperature);
@@ -147,7 +156,9 @@ class Optimizer {
 
         if (motion_model_->shouldStopForVelocityLimits(robot_speed.linear.x, robot_speed.linear.y,
                                                         robot_speed.angular.z)) {
-            control_sequence_.reset(settings_.time_steps);
+            control_sequence_.vx.head(active_time_steps_).setZero();
+            control_sequence_.vy.head(active_time_steps_).setZero();
+            control_sequence_.wz.head(active_time_steps_).setZero();
             return finalizeControlSequence();
         }
 
@@ -163,15 +174,15 @@ class Optimizer {
     const CriticCostBreakdown& getCriticCostBreakdown() const { return critic_cost_breakdown_; }
 
     /**
-     * @brief Return the optimized controls with shape [time_steps, 3].
+     * @brief Return the optimized controls with shape [active_time_steps, 3].
      * @return Columns (vx, wz, vy); vy is zero for nonholonomic models.
      */
     models::BatchArray getControlSequence() const {
-        models::BatchArray seq(settings_.time_steps, 3);
-        seq.col(0) = control_sequence_.vx;
-        seq.col(1) = control_sequence_.wz;
+        models::BatchArray seq(active_time_steps_, 3);
+        seq.col(0) = control_sequence_.vx.head(active_time_steps_);
+        seq.col(1) = control_sequence_.wz.head(active_time_steps_);
         if (isHolonomic()) {
-            seq.col(2) = control_sequence_.vy;
+            seq.col(2) = control_sequence_.vy.head(active_time_steps_);
         } else {
             seq.col(2).setZero();
         }
@@ -179,24 +190,29 @@ class Optimizer {
     }
 
     models::BatchArray getOptimizedTrajectory(const models::BatchArray& sequence) const {
-        models::BatchArray trajectories(settings_.time_steps, 3);
+        models::BatchArray trajectories(active_time_steps_, 3);
         trajectories.setZero();
-        integrateStateVelocities(trajectories, sequence);
+        const Eigen::Index steps = std::min<Eigen::Index>(sequence.rows(), active_time_steps_);
+        integrateStateVelocities(trajectories, sequence.topRows(steps));
         return trajectories;
     }
 
     /// Clear optimization state and regenerate sampling noise.
-    void reset() {
-        state_.reset(settings_.batch_size, settings_.time_steps);
+    void reset() { resetOptimizationState(settings_.time_steps); }
+
+  protected:
+    void resetOptimizationState(unsigned int steps) {
+        active_time_steps_ = steps;
+        state_.reset(settings_.batch_size, active_time_steps_);
         control_sequence_.reset(settings_.time_steps);
         costs_.resize(settings_.batch_size);
         costs_.setZero();
-        generated_trajectories_.reset(settings_.batch_size, settings_.time_steps);
+        generated_trajectories_.reset(settings_.batch_size, active_time_steps_);
         critic_cost_breakdown_.clear();
+        resetCriticData();
         noise_generator_.reset(settings_, isHolonomic());
     }
 
-  protected:
     OptimizationResult finalizeControlSequence() {
         auto controls = getControlSequence();
         auto trajectory = getOptimizedTrajectory(controls);
@@ -222,12 +238,60 @@ class Optimizer {
         state_.speed = robot_speed;
         state_.local_path_length = static_cast<float>(utils::calculatePathLength(plan));
         path_ = utils::toTensor(plan);
+        updateActiveTimeSteps(computeActiveTimeSteps(plan));
         costs_.fill(0);
+        resetCriticData();
+    }
 
+    void resetCriticData() {
         critics_data_.fail_flag = false;
         critics_data_.motion_model = motion_model_;
         critics_data_.furthest_reached_path_point.reset();
         critics_data_.path_pts_valid.reset();
+    }
+
+    unsigned int computeActiveTimeSteps(const nav_msgs::msg::Path& plan) const {
+        const auto& s = settings_;
+        if (!s.adaptive_horizon || state_.local_path_length > s.threshold_to_consider ||
+            plan.poses.empty() || s.min_time_steps >= s.time_steps) {
+            return s.time_steps;
+        }
+
+        const auto& robot = state_.pose.pose;
+        const auto& goal = plan.poses.back().pose;
+        const double d_goal = std::hypot(goal.position.x - robot.position.x,
+                                         goal.position.y - robot.position.y);
+        const double t_pos =
+            std::max<double>(state_.local_path_length, d_goal) / s.adaptive_horizon_linear_vel;
+
+        double t_yaw = 0.0;
+        if (s.consider_goal_angle) {
+            const double yaw_error = angles::shortest_angular_distance(
+                tf2::getYaw(robot.orientation), tf2::getYaw(goal.orientation));
+            t_yaw = std::abs(yaw_error) / s.adaptive_horizon_angular_vel;
+        }
+
+        const double deceleration = std::abs(s.constraints.ax_min);
+        const double t_brake =
+            deceleration > 1e-6 ? std::abs(state_.speed.linear.x) / deceleration : 0.0;
+        const double steps = std::ceil(std::max({t_pos, t_yaw, t_brake}) / s.model_dt);
+        return static_cast<unsigned int>(std::clamp<double>(steps, s.min_time_steps, s.time_steps));
+    }
+
+    void updateActiveTimeSteps(unsigned int steps) {
+        active_time_steps_ = steps;
+        if (state_.vx.cols() != active_time_steps_) {
+            state_.reset(settings_.batch_size, active_time_steps_);
+            generated_trajectories_.reset(settings_.batch_size, active_time_steps_);
+        }
+        clearInactiveControls();
+    }
+
+    void clearInactiveControls() {
+        const Eigen::Index inactive_steps = settings_.time_steps - active_time_steps_;
+        control_sequence_.vx.tail(inactive_steps).setZero();
+        control_sequence_.vy.tail(inactive_steps).setZero();
+        control_sequence_.wz.tail(inactive_steps).setZero();
     }
 
     /**
@@ -252,18 +316,19 @@ class Optimizer {
 
     /// Shift controls by one step to warm-start the next cycle.
     void shiftControlSequence() {
-        const Eigen::Index size = control_sequence_.vx.size();
+        const Eigen::Index size = active_time_steps_;
         if (size > 1) {
-            control_sequence_.vx.head(size - 1) = control_sequence_.vx.tail(size - 1);
-            control_sequence_.wz.head(size - 1) = control_sequence_.wz.tail(size - 1);
-            control_sequence_.vx(size - 1) = control_sequence_.vx(size - 2);
-            control_sequence_.wz(size - 1) = control_sequence_.wz(size - 2);
+            const auto shift = [size](models::Vector& sequence) {
+                std::copy(sequence.data() + 1, sequence.data() + size, sequence.data());
+            };
+            shift(control_sequence_.vx);
+            shift(control_sequence_.wz);
 
             if (isHolonomic()) {
-                control_sequence_.vy.head(size - 1) = control_sequence_.vy.tail(size - 1);
-                control_sequence_.vy(size - 1) = control_sequence_.vy(size - 2);
+                shift(control_sequence_.vy);
             }
         }
+        clearInactiveControls();
     }
 
     rclcpp::Logger logger_{rclcpp::get_logger("MPPISE2")};
@@ -280,33 +345,50 @@ class Optimizer {
    * @brief Apply hard vehicle constraints on control sequence
    */
     void applyControlSequenceConstraints() {
+        if (active_time_steps_ == settings_.time_steps) {
+            projectControlSequence(control_sequence_);
+            return;
+        }
+
+        // Vehicle-specific constraints take an owning control sequence.
+        models::ControlSequence active_controls{control_sequence_.vx.head(active_time_steps_),
+                                                control_sequence_.vy.head(active_time_steps_),
+                                                control_sequence_.wz.head(active_time_steps_)};
+        projectControlSequence(active_controls);
+        control_sequence_.vx.head(active_time_steps_) = active_controls.vx;
+        control_sequence_.vy.head(active_time_steps_) = active_controls.vy;
+        control_sequence_.wz.head(active_time_steps_) = active_controls.wz;
+    }
+
+    void projectControlSequence(models::ControlSequence& controls) {
         // Apply vehicle-specific constraints before projecting velocity and acceleration limits.
-        motion_model_->applyConstraints(control_sequence_);
+        motion_model_->applyConstraints(controls);
 
         float previous_vx = state_.speed.linear.x;
         float previous_vy = state_.speed.linear.y;
         float previous_wz = state_.speed.angular.z;
+        const auto& limits = settings_.constraints;
         const float dt = settings_.model_dt;
-        for (Eigen::Index t = 0; t < control_sequence_.vx.size(); ++t) {
+        for (Eigen::Index t = 0; t < controls.vx.size(); ++t) {
             const float vx = MotionModel::projectVelocity(
-                control_sequence_.vx(t), previous_vx, settings_.constraints.vx_min, settings_.constraints.vx_max,
-                settings_.constraints.ax_min, settings_.constraints.ax_max, dt);
+                controls.vx(t), previous_vx, limits.vx_min, limits.vx_max, limits.ax_min,
+                limits.ax_max, dt);
             const float vy = isHolonomic() ? MotionModel::projectVelocity(
-                                                 control_sequence_.vy(t), previous_vy, -settings_.constraints.vy,
-                                                 settings_.constraints.vy, settings_.constraints.ay_min,
-                                                 settings_.constraints.ay_max, dt)
-                                           : 0.0F;
-            const float wz = motion_model_->projectAngularVelocity(control_sequence_.wz(t), previous_wz, vx, dt);
+                                                controls.vy(t), previous_vy, -limits.vy, limits.vy,
+                                                limits.ay_min, limits.ay_max, dt)
+                                          : 0.0F;
+            const float wz =
+                motion_model_->projectAngularVelocity(controls.wz(t), previous_wz, vx, dt);
 
-            control_sequence_.vx(t) = vx;
-            control_sequence_.vy(t) = vy;
-            control_sequence_.wz(t) = wz;
+            controls.vx(t) = vx;
+            controls.vy(t) = vy;
+            controls.wz(t) = wz;
             previous_vx = vx;
             previous_vy = vy;
             previous_wz = wz;
         }
 
-        motion_model_->applyConstraints(control_sequence_);
+        motion_model_->applyConstraints(controls);
     }
 
     /**
@@ -348,7 +430,8 @@ class Optimizer {
      * @param trajectory Output poses with columns (x, y, yaw).
      * @param sequence Controls with columns (vx, wz, vy).
      */
-    void integrateStateVelocities(models::BatchArray& trajectory, const models::BatchArray& sequence) const {
+    void integrateStateVelocities(models::BatchArray& trajectory,
+                                  const Eigen::Ref<const models::BatchArray>& sequence) const {
         const Eigen::Index time_steps = sequence.rows();
         if (time_steps == 0) {
             return;
@@ -446,7 +529,8 @@ class Optimizer {
    */
     void updateControlSequence() {
         auto& s = settings_;
-        auto accumulate_control_cost = [this, &s](const models::BatchArray& controls, const models::Vector& sequence,
+        auto accumulate_control_cost = [this, &s](const models::BatchArray& controls,
+                                                  const Eigen::Ref<const models::Vector>& sequence,
                                                   float standard_deviation) {
             models::BatchArray bounded_noises = controls;
             bounded_noises.rowwise() -= sequence.transpose();
@@ -454,16 +538,19 @@ class Optimizer {
             costs_ += s.gamma / std::pow(standard_deviation, 2.0F) * bounded_noises.rowwise().sum();
         };
 
-        accumulate_control_cost(state_.cvx, control_sequence_.vx, s.sampling_std.vx);
-        accumulate_control_cost(state_.cwz, control_sequence_.wz, s.sampling_std.wz);
+        accumulate_control_cost(state_.cvx, control_sequence_.vx.head(active_time_steps_),
+                                s.sampling_std.vx);
+        accumulate_control_cost(state_.cwz, control_sequence_.wz.head(active_time_steps_),
+                                s.sampling_std.wz);
 
         if (isHolonomic()) {
-            accumulate_control_cost(state_.cvy, control_sequence_.vy, s.sampling_std.vy);
+            accumulate_control_cost(state_.cvy, control_sequence_.vy.head(active_time_steps_),
+                                    s.sampling_std.vy);
         }
 
         const models::Vector exponents = (-(costs_.array() - costs_.minCoeff()) / settings_.temperature).exp();
         const models::Vector softmaxes = exponents / exponents.sum();
-        for (Eigen::Index t = 0; t < state_.cvx.cols(); ++t) {
+        for (Eigen::Index t = 0; t < active_time_steps_; ++t) {
             control_sequence_.vx(t) = (state_.cvx.col(t) * softmaxes).sum();
             control_sequence_.wz(t) = (state_.cwz.col(t) * softmaxes).sum();
             if (isHolonomic()) {
@@ -493,7 +580,7 @@ class Optimizer {
             return false;
         }
 
-        reset();
+        resetOptimizationState(active_time_steps_);
 
         if (++counter > settings_.retry_attempt_limit) {
             counter = 0;
@@ -512,6 +599,7 @@ class Optimizer {
     NoiseGenerator noise_generator_;
 
     models::OptimizerSettings settings_;
+    unsigned int active_time_steps_{0};
     bool regenerate_noises_{true};
 
     models::State state_;

@@ -93,12 +93,13 @@ void NoiseGenerator::generateNextNoises() {
 void NoiseGenerator::setNoisedControls(models::State& state, const models::ControlSequence& control_sequence) {
     std::unique_lock<std::mutex> guard(noise_lock_);
 
-    state.cvx = noises_vx_;
-    state.cvy = noises_vy_;
-    state.cwz = noises_wz_;
-    state.cvx.rowwise() += control_sequence.vx.transpose();
-    state.cvy.rowwise() += control_sequence.vy.transpose();
-    state.cwz.rowwise() += control_sequence.wz.transpose();
+    const Eigen::Index active_steps = state.cvx.cols();
+    state.cvx = noises_vx_.leftCols(active_steps).rowwise() +
+                control_sequence.vx.head(active_steps).transpose();
+    state.cvy = noises_vy_.leftCols(active_steps).rowwise() +
+                control_sequence.vy.head(active_steps).transpose();
+    state.cwz = noises_wz_.leftCols(active_steps).rowwise() +
+                control_sequence.wz.head(active_steps).transpose();
 }
 
 void NoiseGenerator::reset(mppi::models::OptimizerSettings& settings, bool is_holonomic) {

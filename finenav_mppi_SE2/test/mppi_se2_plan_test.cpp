@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -196,7 +197,7 @@ TEST(MPPISE2PlanTest, VisualizedPlanResetStressWithPracticalDimensions) {
 
 TEST(MPPISE2PlanTest, PlanPreservesConfiguredHorizon) {
     auto params = makePlannerParams();
-    params.time_steps = 5;
+    params.time_steps = 20;
     MPPISE2 planner;
     planner.configure(params);
     TestWorldView world_view;
@@ -204,8 +205,52 @@ TEST(MPPISE2PlanTest, PlanPreservesConfiguredHorizon) {
     const auto result = planner.plan(makeContext(), world_view);
 
     ASSERT_TRUE(result.has_value());
-    EXPECT_EQ(result->poses.size(), 5u);
-    EXPECT_EQ(result->twists.size(), 5u);
+    expectFiniteBoundedOutput(*result, params);
+}
+
+TEST(MPPISE2PlanTest, AdaptiveHorizonIncreasesFirstForwardCommandNearGoal) {
+    finenav_mppi_SE2::Params params;
+    params.regenerate_noises = false;
+    params.batch_size = 1024;
+    params.iteration_count = 3;
+    params.temperature = 0.1;
+
+    auto context = makeContext(2);
+    context.ref_traj.poses.back().position.x = 0.04;
+    context.robot_state.twist.linear.x = 0.07;
+
+    MPPISE2 adaptive_planner;
+    adaptive_planner.configure(params);
+    TestWorldView adaptive_world;
+    const auto adaptive = adaptive_planner.plan(context, adaptive_world);
+
+    params.adaptive_horizon = false;
+    MPPISE2 fixed_planner;
+    fixed_planner.configure(params);
+    TestWorldView fixed_world;
+    const auto fixed = fixed_planner.plan(context, fixed_world);
+
+    ASSERT_TRUE(adaptive.has_value());
+    ASSERT_TRUE(fixed.has_value());
+    expectFiniteBoundedOutput(*fixed, params);
+    EXPECT_EQ(adaptive->poses.size(), static_cast<std::size_t>(params.min_time_steps));
+    ASSERT_EQ(adaptive->twists.size(), static_cast<std::size_t>(params.min_time_steps));
+    EXPECT_GT(adaptive->twists.front().linear.x, fixed->twists.front().linear.x);
+    const auto samples = params.batch_size * params.iteration_count * params.min_time_steps;
+    EXPECT_EQ(adaptive_world.costQueries(), static_cast<std::size_t>(samples));
+}
+
+TEST(MPPISE2PlanTest, MinimumHorizonAboveMaximumUsesConfiguredMaximum) {
+    auto params = makePlannerParams();
+    params.min_time_steps = params.time_steps + 1;
+    MPPISE2 planner;
+    planner.configure(params);
+    TestWorldView world_view;
+
+    const auto result = planner.plan(makeContext(2), world_view);
+
+    ASSERT_TRUE(result.has_value());
+    expectFiniteBoundedOutput(*result, params);
 }
 
 TEST(MPPISE2PlanTest, PlanUsesConfiguredCostCriticWorkerCount) {
@@ -319,6 +364,27 @@ TEST(MPPISE2PlanTest, RejectsInvalidAccelerationBounds) {
     params = makePlannerParams();
     params.az_max = -0.1;
     EXPECT_THROW(planner.configure(params), std::invalid_argument);
+}
+
+TEST(MPPISE2PlanTest, RejectsInvalidAdaptiveHorizonParameters) {
+    MPPISE2 planner;
+    for (const int invalid_steps : {0, -1}) {
+        auto params = makePlannerParams();
+        params.min_time_steps = invalid_steps;
+        EXPECT_THROW(planner.configure(params), std::invalid_argument);
+    }
+
+    for (const double invalid_speed : {0.0, -0.1, std::numeric_limits<double>::infinity(),
+                                       -std::numeric_limits<double>::infinity(),
+                                       std::numeric_limits<double>::quiet_NaN()}) {
+        auto params = makePlannerParams();
+        params.adaptive_horizon_linear_vel = invalid_speed;
+        EXPECT_THROW(planner.configure(params), std::invalid_argument);
+
+        params = makePlannerParams();
+        params.adaptive_horizon_angular_vel = invalid_speed;
+        EXPECT_THROW(planner.configure(params), std::invalid_argument);
+    }
 }
 
 }  // namespace

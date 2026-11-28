@@ -6,6 +6,28 @@ finenav_mppi_SE2:
     description: "Number of time steps in trajectory rollout"
     validation:
       gt<>: [0]
+  adaptive_horizon:
+    type: bool
+    default_value: true
+    description: "Shorten the prediction horizon when approaching the goal"
+  min_time_steps:
+    type: int
+    default_value: 10
+    description: "Minimum number of time steps when adapting the horizon"
+    validation:
+      gt<>: [0]
+  adaptive_horizon_linear_vel:
+    type: double
+    default_value: 0.25
+    description: "Target linear approach speed (m/s) used to size the horizon, above the base deadband"
+    validation:
+      gt<>: [0.0]
+  adaptive_horizon_angular_vel:
+    type: double
+    default_value: 0.5
+    description: "Target angular approach speed (rad/s) used to size the horizon, above the base deadband"
+    validation:
+      gt<>: [0.0]
   model_dt:
     type: double
     default_value: 0.05
